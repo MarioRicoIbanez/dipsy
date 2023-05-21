@@ -54,7 +54,8 @@ try:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
     # Load and preprocess the dataset
-    df = load_and_preprocess_data('../../data/isear.csv')
+    data_path = '/home/mriciba/Projects/dipsy/datasets/isear.csv'
+    df = load_and_preprocess_data(data_path)
 
     # Set max sequence length and load the tokenizer
     tokenizer = DebertaTokenizer.from_pretrained("microsoft/deberta-base")

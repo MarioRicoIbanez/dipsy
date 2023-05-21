@@ -1,14 +1,12 @@
-from sklearn.preprocessing import LabelEncoder
+from sklearn.preprocessing import OneHotEncoder
 from transformers import AutoTokenizer, RobertaModel, get_linear_schedule_with_warmup
 from utils import *
-from datasets import load_dataset
+
 import traceback
 import asyncio
 import os
 import warnings
 import re
-
-
 os.environ['TOKENIZERS_PARALLELISM'] = 'false'
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
@@ -18,13 +16,13 @@ TEST_SIZE = 0.2
 RANDOM_STATE = 42
 EPOCHS_KFOLD_FROZEN = 100
 LEARNING_RATE_KFOLD_FROZEN = 3e-4
-K_FOLDS_FROZEN = 2
-BATCH_SIZE = 16
+K_FOLDS_FROZEN = 5
+BATCH_SIZE = 8
 LOSS_FUNCTION = nn.CrossEntropyLoss()
 
 "DIRECTORIES"
-SAVE_DIRECTORY_FROZEN = "./GLUE/RoBERTa_entrenado_kfold"
-SAVE_DIRECTORY_UNFROZEN = "./GLUE/RoBERTa_entrenado_kfold_unfrozen_last_layer"
+SAVE_DIRECTORY_FROZEN = "./MODELS/RoBERTa_entrenado_kfold"
+SAVE_DIRECTORY_UNFROZEN = "./MODELS/RoBERTa_entrenado_kfold_unfrozen_last_layer"
 
 TYPED_STORAGE_WARNING = re.compile(".TypedStorage is deprecated.")
 FALLBACK_KERNEL_WARNING = re.compile(".Using FallbackKernel: aten.cumsum.")
@@ -39,51 +37,40 @@ def warning_filter(message, category, filename, lineno, file=None, line=None):
 warnings.showwarning = warning_filter
 warnings.filterwarnings("ignore", category=UserWarning, module="torch._inductor.ir")
 
-
-
-# Load the GLUE dataset
-def load_glue_dataset(task_name):
-    dataset = load_dataset('glue', task_name)
-    return dataset
-
-# Preprocess the GLUE dataset
-def preprocess_glue_data(dataset, tokenizer, max_len):
-    def encode(example):
-        return tokenizer(example['sentence'], truncation=True, padding='max_length', max_length=max_len)
-
-    encoded_dataset = dataset.map(encode, batched=True)
-    return encoded_dataset
-
-
-
 try:
-    asyncio.run(send_telegram_message(message='Comenzando a entrenar GLUE'))
+    asyncio.run(send_telegram_message(message='Comenzando a entrenar'))
     # Check if GPU is available and set the default device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
-
-    task_name = 'sst2'  # Choose the task name from the GLUE dataset
-    glue_dataset = load_glue_dataset(task_name)
-    train_dataset = glue_dataset['train']
+    # Load and preprocess the dataset
+    df = load_and_preprocess_data('../../data/isear.csv')
 
     # Set max sequence length and load the tokenizer
     tokenizer = AutoTokenizer.from_pretrained('roberta-base')
 
     # Tokenize and encode the input data
-    encoded_train_dataset = preprocess_glue_data(train_dataset, tokenizer, MAX_LEN)
+    tokenized_features = tokenizer.batch_encode_plus(
+        df['Text_processed'].values.tolist(),
+        add_special_tokens=True,
+        padding='max_length',
+        truncation=True,
+        max_length=MAX_LEN,
+        return_attention_mask=True,
+        return_tensors='pt'
+    )
 
     # Encode the emotion labels using LabelEncoder
-    label_encoder = LabelEncoder()
-    labels = label_encoder.fit_transform(encoded_train_dataset['label'])
+    one_hot_encoder = OneHotEncoder()
+    target_one_hot = one_hot_encoder.fit_transform(df['Emotion'].values.reshape(-1, 1)).toarray()
 
     # Split the dataset into training and test sets
     train_inputs, test_inputs, train_labels, test_labels, train_masks, test_masks = train_test_split(
-        encoded_train_dataset["input_ids"],
-        labels,
-        encoded_train_dataset["attention_mask"],
+        tokenized_features["input_ids"],
+        target_one_hot,
+        tokenized_features["attention_mask"],
         test_size=TEST_SIZE,
         random_state=RANDOM_STATE,
-        stratify=labels,
+        stratify=target_one_hot,
     )
 
     # Initialize the base RoBERTa model
@@ -94,14 +81,19 @@ try:
         param.requires_grad = False
 
     # Initialize the custom RoBERTa model
-    model = CustomRoBERTa(base_model.to(device), num_classes=len(set(labels)))
+    model = CustomRoBERTa(base_model.to(device), num_classes=len(set(df['Emotion'])))
 
     compiled_model = torch.compile(model)
 
     # Define the optimizer, learning rate scheduler, and loss function
     optimizer = torch.optim.AdamW(compiled_model.parameters(), LEARNING_RATE_KFOLD_FROZEN)
 
+    #total_steps = len(train_inputs) * EPOCHS_KFOLD_FROZEN
+    #scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0.1 * total_steps,
+    #                                            num_training_steps=total_steps)
+
     # Train the custom RoBERTa model using k-fold cross validation
+
     kfold_results, model_frozen = kfold_cross_validation(train_inputs, train_labels, train_masks, compiled_model, device, EPOCHS_KFOLD_FROZEN, lr=LEARNING_RATE_KFOLD_FROZEN,
                                                         k_folds=K_FOLDS_FROZEN,
                                                         batch_size=BATCH_SIZE)

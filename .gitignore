@@ -1,3 +1,7 @@
 *.csv
 datasets/
 **/MODELS/
+**/alpaca-lora/
+**/experiments/
+**/new_model/
+*.json

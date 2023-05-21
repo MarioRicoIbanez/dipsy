@@ -148,7 +148,7 @@ def train_model(model, train_dataloader, validation_dataloader, optimizer, sched
             outputs = model(b_input_ids, attention_mask=b_input_mask)
             logits = outputs.logits.detach().cpu().numpy()
             label_ids_one_hot = b_labels_one_hot.cpu().numpy()
-            label_ids = np.argmax(label_ids_one_hot, axis=1)
+            label_ids = np.argmax(label_ids_one_hot, axis=  0)
 
             loss = loss_function(outputs.logits, b_labels_one_hot)
 
@@ -175,6 +175,7 @@ def train_model(model, train_dataloader, validation_dataloader, optimizer, sched
         total_eval_accuracy = 0
         total_eval_loss = 0
 
+
         for batch in validation_dataloader:
             b_input_ids = batch[0]  # move input tensor to device
             b_input_mask = batch[1]  # move input tensor to device
@@ -185,7 +186,7 @@ def train_model(model, train_dataloader, validation_dataloader, optimizer, sched
 
             logits = outputs.logits.detach().cpu().numpy()
             label_ids_one_hot = b_labels_one_hot.cpu().numpy()
-            label_ids = np.argmax(label_ids_one_hot, axis=1)
+            label_ids = np.argmax(label_ids_one_hot, axis=0)
 
             total_eval_accuracy += flat_accuracy(logits, label_ids)
 
@@ -214,7 +215,8 @@ def train_model(model, train_dataloader, validation_dataloader, optimizer, sched
 
     return training_losses, training_accuracies, validation_losses, validation_accuracies, epoch_early_stopping
 
-
+    
+   
 # This function calculates the accuracy of the predicted labels compared to the actual labels
 
 
@@ -345,9 +347,9 @@ def kfold_cross_validation(train_inputs, train_labels, train_masks, model, devic
     return fold_results, final_model
 
 
-def flat_accuracy(preds, labels):
-    pred_flat = np.argmax(preds, axis=1).flatten()
-    labels_flat = labels.flatten()
+def flat_accuracy(preds, labels_one_hot):
+    pred_flat = np.argmax(preds, axis=0).flatten()
+    labels_flat = np.argmax(labels_one_hot, axis=0).flatten()  # Modify this line to handle one-hot encoded labels
     output = np.sum(pred_flat == labels_flat) / len(labels_flat)
 
     return output
