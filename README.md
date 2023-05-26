@@ -1,4 +1,4 @@
-# Proyecto IA para la Psicología: Detección de Emociones con Transformers
+# Proyecto IA para la Psicología: Detección de Emociones con arquitecturas Transformers
 ## Descripción
 Este proyecto tiene como objetivo utilizar el potencial de los Transformers en IA para mejorar el sector de la psicología. Concretamente, nuestro propósito es detectar las emociones que los pacientes expresan durante sus sesiones de terapia.
 
