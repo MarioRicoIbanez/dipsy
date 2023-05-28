@@ -1,122 +1,92 @@
-# -*- coding: utf-8 -*-
-"""
-This script installs necessary libraries, defines functions for data preprocessing and model training,
-and trains a sentiment analysis model using the Hugging Face's Transformer library.
-"""
-
-# Installing necessary libraries
-
-
-# Importing necessary libraries
-import transformers 
+import transformers
 import textwrap
-from transformers import LlamaTokenizer, LlamaForCausalLM 
+from transformers import LlamaTokenizer, LlamaForCausalLM
 import os
 import sys
 from typing import List
+ 
 from peft import (
-  LoraConfig, 
-  get_peft_model,
-  get_peft_model_state_dict,
-  prepare_model_for_int8_training,
+    LoraConfig,
+    get_peft_model,
+    get_peft_model_state_dict,
+    prepare_model_for_int8_training,
 )
-
-import fire 
+ 
+import fire
 import torch
-from datasets import load_dataset 
+from datasets import load_dataset
 import pandas as pd
-import matplotlib.pyplot as plt 
-import matplotlib as mpl 
-import seaborn as sns 
-from pylab import rcParams 
-import json
-import re
-import string
-sns.set(rc={'figure.figsize': (8, 6)}) 
-sns.set (rc={'figure.dpi':100})
+ 
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+import seaborn as sns
+from pylab import rcParams
+ 
+sns.set(rc={'figure.figsize':(10, 7)})
+sns.set(rc={'figure.dpi':100})
 sns.set(style='white', palette='muted', font_scale=1.2)
+ 
 DEVICE = "cuda" if torch.cuda.is_available() else "cpu"
 
-# Function to clean text
-def clean_text(text):
-    """
-    This function takes a text string and performs the following:
-    1. Converts the text to lowercase
-    2. Removes URLs
-    3. Removes punctuation
-    4. Removes words containing numbers
-    5. Removes multiple spaces
-    Returns the cleaned text.
-    """
-    text = text.lower()
-    text = re.sub('https:\/\/\S+', '', text)
-    text = re.sub('[%s]' % re.escape(string.punctuation), '', text)
-    text = re.sub(r'[^ \w\.]', '', text)
-    text = re.sub('\w*\d\w*', '', text)
-    text = re.sub(' +', ' ', text)
-    return text
+os.system('gdown 1xQ89cpZCnafsW5T3G3ZQWvR7q682t2BN')
+df = pd.read_csv("bitcoin-sentiment-tweets.csv")
 
-# Function to load and preprocess data
-def load_and_preprocess_data(file_path):
-    """
-    This function loads and preprocesses data from a csv file, applies the clean_text function,
-    and adds a new column 'Text_processed'
-    """
-    df = pd.read_csv(file_path, names=['Emotion', 'Text', 'DNTKNOW'], sep=',').drop(columns=['DNTKNOW']).dropna()
-    df['Text_processed'] = df.Text.apply(clean_text)
-    return df
-
-# Load and preprocess data
-url = 'https://raw.githubusercontent.com/PoorvaRane/Emotion-Detector/master/ISEAR.csv'
-df = load_and_preprocess_data(url)
-df.Emotion.value_counts().plot(kind="bar")
-
-# Create dataset for training
-dataset_data = [
-    {
-        "instruction": "Detect the sentiment.",
-        "input": row_dict["Text_processed"],
-        "output": row_dict["Emotion"]
-    }
-  for row_dict in df.to_dict(orient="records")
-]
-with open("isear.json", "w") as f:
-    json.dump(dataset_data, f)
-
-# Load pretrained model and tokenizer
-BASE_MODEL = "decapoda-research/llama-7b-hf"
-model = LlamaForCausalLM.from_pretrained(
-      BASE_MODEL,
-      load_in_8bit=True,
-      torch_dtype=torch.float16,
-      device_map="auto"
-)
-tokenizer = LlamaTokenizer.from_pretrained(BASE_MODEL)
-tokenizer.pad_token_id = 0
-tokenizer.padding_side = "left"
-
-# Load dataset
-data = load_dataset("json", data_files="isear.json")
-
-# Define functions for tokenizing prompts
-def generate_prompt(data_point):
-    """
-    This function generates a prompt for the model based on a data point.
-    """
-    return f"""Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.  # noqa: E501
-    ### Instruction:
-    {data_point["instruction"]}
-    ### Input:
-    {data_point["input"]}
-    ### Response:
-    {data_point["output"]}"""
+print(df.sentiment.value_counts())
 
 CUTOFF_LEN = 256
+def sentiment_score_to_name(score: float):
+    if score > 0:
+        return "Positive"
+    elif score < 0:
+        return "Negative"
+    return "Neutral"
+ 
+dataset_data = [
+    {
+        "instruction": "Detect the sentiment of the tweet.",
+        "input": row_dict["tweet"],
+        "output": sentiment_score_to_name(row_dict["sentiment"])
+    }
+    for row_dict in df.to_dict(orient="records")
+]
+ 
+import json
+with open("alpaca-bitcoin-sentiment-dataset.json", "w") as f:
+   json.dump(dataset_data, f)
 
+
+BASE_MODEL = "decapoda-research/llama-7b-hf"
+ 
+model = LlamaForCausalLM.from_pretrained(
+    BASE_MODEL,
+    load_in_8bit=True,
+    torch_dtype=torch.float32,
+    device_map="auto",
+)
+ 
+tokenizer = LlamaTokenizer.from_pretrained(BASE_MODEL)
+ 
+tokenizer.pad_token_id = (
+    0  # unk. we want this to be different from the eos token
+)
+tokenizer.padding_side = "left"
+
+data = load_dataset("json", data_files="alpaca-bitcoin-sentiment-dataset.json")
+data["train"]
+
+
+
+def generate_prompt(data_point):
+    return f"""Below is an instruction that describes a task, paired with an input that provides further context. Write a response that appropriately completes the request.  # noqa: E501
+### Instruction:
+{data_point["instruction"]}
+### Input:
+{data_point["input"]}
+### Response:
+{data_point["output"]}"""
+ 
+ 
 def tokenize(prompt, add_eos_token=True):
-    """
-    This function tokenizes a prompt.
-    """
     result = tokenizer(
         prompt,
         truncation=True,
@@ -133,34 +103,44 @@ def tokenize(prompt, add_eos_token=True):
         result["attention_mask"].append(1)
  
     result["labels"] = result["input_ids"].copy()
+ 
     return result
-
+ 
 def generate_and_tokenize_prompt(data_point):
-    """
-    This function generates a prompt for a data point and tokenizes it.
-    """
     full_prompt = generate_prompt(data_point)
     tokenized_full_prompt = tokenize(full_prompt)
     return tokenized_full_prompt
 
-# Split data into train and validation sets
-train_val = data["train"].train_test_split(
-    test_size = 0.2, shuffle=True, seed=42
-)
-train_data = train_val["train"].shuffle().map(generate_and_tokenize_prompt)
-val_data = train_val["test"].map(generate_and_tokenize_prompt)
 
-# Set up model for training
+
+train_val = data["train"].train_test_split(
+    test_size=200, shuffle=True, seed=42
+)
+train_data = (
+    train_val["train"].map(generate_and_tokenize_prompt)
+)
+val_data = (
+    train_val["test"].map(generate_and_tokenize_prompt)
+)
+
+
+
 LORA_R = 8
 LORA_ALPHA = 16
 LORA_DROPOUT= 0.05
-LORA_TARGET_MODULES = ["q_proj", "v_proj"]
+LORA_TARGET_MODULES = [
+    "q_proj",
+    "v_proj",
+]
+ 
 BATCH_SIZE = 128
 MICRO_BATCH_SIZE = 4
 GRADIENT_ACCUMULATION_STEPS = BATCH_SIZE // MICRO_BATCH_SIZE
 LEARNING_RATE = 3e-4
 TRAIN_STEPS = 300
-OUTPUT_DIR = "experiments"
+OUTPUT_DIR = "experiments_example"
+
+
 model = prepare_model_for_int8_training(model)
 config = LoraConfig(
     r=LORA_R,
@@ -171,10 +151,10 @@ config = LoraConfig(
     task_type="CAUSAL_LM",
 )
 model = get_peft_model(model, config)
-
 model.print_trainable_parameters()
 
-# Set up training arguments
+
+
 training_arguments = transformers.TrainingArguments(
     per_device_train_batch_size=MICRO_BATCH_SIZE,
     gradient_accumulation_steps=GRADIENT_ACCUMULATION_STEPS,
@@ -194,10 +174,11 @@ training_arguments = transformers.TrainingArguments(
     report_to="tensorboard"
 )
 
-# Create data collator and trainer
+
 data_collator = transformers.DataCollatorForSeq2Seq(
     tokenizer, pad_to_multiple_of=8, return_tensors="pt", padding=True
 )
+
 trainer = transformers.Trainer(
     model=model,
     train_dataset=train_data,
@@ -205,6 +186,7 @@ trainer = transformers.Trainer(
     args=training_arguments,
     data_collator=data_collator
 )
+
 model.config.use_cache = False
 old_state_dict = model.state_dict
 model.state_dict = (
@@ -212,16 +194,26 @@ model.state_dict = (
         self, old_state_dict()
     )
 ).__get__(model, type(model))
+ 
 model = torch.compile(model)
-
-# Train the model
+ 
 trainer.train()
 model.save_pretrained(OUTPUT_DIR)
 
-# Authenticate with Hugging Face and push model to the hub
+
 
 import huggingface_hub
 huggingface_hub.login(token = "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")
 
-model.push_to_hub("RikoteMaster/sentiment_analysys_isear", use_auth_token=True)
+model.push_to_hub("RikoteMaster/example_llama", use_auth_token=True)
 
+
+os.system('git clone https://github.com/tloen/alpaca-lora.git')
+os.system('cd alpaca-lora')
+os.system('git checkout a48d947')
+
+os.system("python generate.py \
+    --load_8bit \
+    --base_model 'decapoda-research/llama-7b-hf' \
+    --lora_weights 'RikoteMaster/example_llama' \
+    --share_gradio")
