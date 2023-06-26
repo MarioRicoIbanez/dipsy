@@ -8,17 +8,28 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 print(f"Using device: {device}")
 
 # Load and preprocess the dataset
-df = load_and_preprocess_data('../data/isear.csv')
+df = load_and_preprocess_data('/home/mriciba/Projects/dipsy/BERTS/data/isear.csv')
 
 # Set max sequence length and load the tokenizer
 MAX_LEN = 180
 tokenizer = AutoTokenizer.from_pretrained('roberta-base')
 # Tokenize and encode the input data
-tokenized_features = tokenize_and_encode(df, tokenizer, MAX_LEN)
+tokenizer = DebertaTokenizer.from_pretrained("microsoft/deberta-base")
 
-# Encode the emotion labels using LabelEncoder
-le = LabelEncoder()
-target_num = le.fit_transform(df['Emotion'].values.tolist())
+tokenized_features = tokenizer.batch_encode_plus(
+    df['Text_processed'].values.tolist(),
+    add_special_tokens=True,
+    padding='max_length',
+    truncation=True,
+    max_length=MAX_LEN,
+    return_attention_mask=True,
+    return_tensors='pt'
+)
+
+    one_hot_encoder = OneHotEncoder()
+    target_one_hot = one_hot_encoder.fit_transform(df['Emotion'].values.reshape(-1, 1)).toarray()
+    classes = one_hot_encoder.categories_[0]
+
 
 # Split the dataset into training and validation sets
 train_inputs, validation_inputs, train_labels, validation_labels, train_masks, validation_masks = split_data(

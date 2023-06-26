@@ -1,5 +1,10 @@
-sudo sshfs mriciba@cvblab.synology.me:/CVBLab/Proyectos/DIPSY/INVESTIGACION/text/data /home/mriciba/Projects/dipsy/datasets -o allow_other -p 1098
+sshfs mriciba@cvblab.synology.me:/CVBLab/Proyectos/DIPSY/INVESTIGACION/text/data /home/mriciba/Projects/dipsy/datasets -o allow_other -p 1098
 jIhzej-xyzdof-gynfo4
-sudo NV_GPU=0 nvidia-docker run --name dipsy -it --rm -v /home/mriciba/Projects/dipsy/datasets:/workspace/data -v /home/mriciba/Projects/dipsy/code:/workspace/code nvcr.io/nvidia/tensorflow:20.12-tf2-py3
-sudo NV_GPU=1 nvidia-docker run --name dipsy -it --rm -v /home/mriciba/Projects/dipsy/datasets:/workspace/data -v /home/mriciba/Projects/dipsy/code:/workspace/code nvcr.io/nvidia/pytorch:23.01-py3
-sudo NV_GPU=0 nvidia-docker run --name dipsy -it --rm -v /home/mriciba/Projects/dipsy/llama:/workspace/code dipsy_empty
+
+NV_GPU=0 nvidia-docker run --name dipsy -it --rm -v /home/mriciba/Projects/dipsy/llama:/workspace/code dipsy_base_torch_2
+NV_GPU=0 nvidia-docker run --name dipsy -it --rm -v /home/mriciba/Projects/dipsy/llama:/workspace/code dipsy_base_torch_2
+
+NV_GPU=0 nvidia-docker run --name dipsy -it --rm -v /home/mriciba/Projects/dipsy/llama:/workspace/code 
+
+
+nvidia-docker run --gpus '"device=0"' --name dipsy -it -p 2224:22 -v /home/$(whoami)/Scratch/:/home/$(whoami)/Scratch -u $(id -u):$(id -g) dipsy_base_torch_2:latest

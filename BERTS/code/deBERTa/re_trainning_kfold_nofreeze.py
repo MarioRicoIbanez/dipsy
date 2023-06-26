@@ -60,7 +60,7 @@ try:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
 
-    df = load_and_preprocess_data('../../data/isear.csv')
+    df = load_and_preprocess_data('/home/mriciba/Projects/dipsy/BERTS/data/isear.csv')
 
     tokenizer = DebertaTokenizer.from_pretrained("microsoft/deberta-base")
 
