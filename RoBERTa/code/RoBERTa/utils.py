@@ -295,6 +295,8 @@ def kfold_cross_validation(train_inputs, train_labels, train_masks, model, devic
             'validation_losses': validation_losses,
             'validation_accuracies': validation_accuracies
         })
+        del model_copy 
+        torch.cuda.empty_cache()
 
     print("Final Training with all data")
 
