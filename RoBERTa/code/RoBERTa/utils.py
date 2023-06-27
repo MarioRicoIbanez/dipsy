@@ -18,6 +18,8 @@ from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.utils.multiclass import unique_labels
+from torch.utils.tensorboard import SummaryWriter  # Import TensorBoard
+
 
 
 
@@ -53,42 +55,8 @@ def load_and_preprocess_data(file_path):
     return df
 
 
-# This function splits the tokenized features into training and validation sets
 
-def split_data(features, labels, test_size=0.25, validation_size=0.2, random_seed=None):
-    """
-    Divide los datos en conjuntos de entrenamiento, validación y prueba.
-    """
-    if random_seed is not None:
-        random_state = random_seed
-    else:
-        random_state = np.random.RandomState(seed=None)
-
-    # Divide los datos en conjuntos de entrenamiento y prueba
-    train_inputs, test_inputs, train_labels, test_labels, train_masks, test_masks = train_test_split(
-        features["input_ids"],
-        labels,
-        features["attention_mask"],
-        test_size=test_size,
-        random_state=random_state,
-        stratify=labels,
-    )
-
-    # Divide los datos de entrenamiento en conjuntos de entrenamiento y validación
-    train_inputs, validation_inputs, train_labels, validation_labels, train_masks, validation_masks = train_test_split(
-        train_inputs,
-        train_labels,
-        train_masks,
-        test_size=validation_size,
-        random_state=random_state,
-        stratify=train_labels,
-    )
-
-    return train_inputs, validation_inputs, test_inputs, torch.tensor(train_labels), torch.tensor(
-        validation_labels), torch.tensor(test_labels), train_masks, validation_masks, test_masks
-
-    # This function creates dataloaders using the given inputs, masks, labels, and batch size
-
+# This function creates dataloaders using the given inputs, masks, labels, and batch size
 
 def create_dataloader(inputs, masks, labels, batch_size, device):
     data = TensorDataset(inputs.to(device), masks.to(device), labels.to(device))
@@ -97,6 +65,7 @@ def create_dataloader(inputs, masks, labels, batch_size, device):
 
 
 class CustomRoBERTa(nn.Module):
+
     def __init__(self, base_model, num_classes=7):  # Change the default value of num_classes to 7
         super(CustomRoBERTa, self).__init__()  # Inheritance of nn.Module overloading the constructor with CustomRoBERTa
         self.base_model = base_model
@@ -125,7 +94,7 @@ class CustomRoBERTa(nn.Module):
 
 # This function trains the given model using the given training and validation dataloaders, optimizer, scheduler, loss function, device, and epochs
 def train_model(model, train_dataloader, validation_dataloader, optimizer, scheduler, loss_function, device, epochs,
-                patience=10):
+                patience=10, fold=0):
     training_losses = []
     training_accuracies = []
     validation_losses = []
@@ -135,6 +104,9 @@ def train_model(model, train_dataloader, validation_dataloader, optimizer, sched
 
     best_validation_loss = float("inf")
     consecutive_no_improvement = 0
+    
+
+    writer = SummaryWriter(f'runs/Fold_{fold}') # Creates a SummaryWriter object for TensorBoard
 
     for epoch_i in range(epochs):
         print(f'Training epoch {epoch_i + 1}')
@@ -142,9 +114,9 @@ def train_model(model, train_dataloader, validation_dataloader, optimizer, sched
         total_loss = 0
         total_train_accuracy = 0
         for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
-            b_input_ids = batch[0]  # move input tensor to device
-            b_input_mask = batch[1]  # move input tensor to device
-            b_labels_one_hot = batch[2]  # move input tensor to device
+            b_input_ids = batch[0]  
+            b_input_mask = batch[1]  
+            b_labels_one_hot = batch[2]  
             model.zero_grad()
 
             outputs = model(b_input_ids, attention_mask=b_input_mask)
@@ -164,6 +136,10 @@ def train_model(model, train_dataloader, validation_dataloader, optimizer, sched
 
         avg_train_loss = total_loss / len(train_dataloader)
         avg_train_accuracy = total_train_accuracy / len(train_dataloader)
+
+        writer.add_scalar('Train/Loss', avg_train_loss, epoch_i)
+        writer.add_scalar('Train/Accuracy', avg_train_accuracy, epoch_i)
+
         training_losses.append(avg_train_loss)
         training_accuracies.append(avg_train_accuracy)
 
@@ -178,9 +154,9 @@ def train_model(model, train_dataloader, validation_dataloader, optimizer, sched
         total_eval_loss = 0
 
         for batch in validation_dataloader:
-            b_input_ids = batch[0]  # move input tensor to device
-            b_input_mask = batch[1]  # move input tensor to device
-            b_labels_one_hot = batch[2]  # move input tensor to device
+            b_input_ids = batch[0]  
+            b_input_mask = batch[1]  
+            b_labels_one_hot = batch[2]  
 
             with torch.no_grad():
                 outputs = model(b_input_ids, attention_mask=b_input_mask)
@@ -196,6 +172,8 @@ def train_model(model, train_dataloader, validation_dataloader, optimizer, sched
 
         avg_eval_loss = total_eval_loss / len(validation_dataloader)
         avg_eval_accuracy = total_eval_accuracy / len(validation_dataloader)
+        writer.add_scalar('Validation/Loss', avg_eval_loss, epoch_i)
+        writer.add_scalar('Validation/Accuracy', avg_eval_accuracy, epoch_i)
         validation_losses.append(avg_eval_loss)
         validation_accuracies.append(avg_eval_accuracy)
         print(
@@ -213,7 +191,7 @@ def train_model(model, train_dataloader, validation_dataloader, optimizer, sched
                 epoch_early_stopping = epoch_i
 
                 break
-
+    writer.close()
     return training_losses, training_accuracies, validation_losses, validation_accuracies, epoch_early_stopping
 
 
@@ -308,7 +286,7 @@ def kfold_cross_validation(train_inputs, train_labels, train_masks, model, devic
         # Entrena y evalúa el modelo en el fold actual
         training_losses, training_accuracies, validation_losses, validation_accuracies, epoch_early_stopping = train_model(
             model_copy, train_dataloader, validation_dataloader, optimizer, scheduler, loss_function, device, epochs,
-            patience=patience)
+            patience=patience, fold=fold+1)  # Add the fold number as a parameter
 
         # Guarda los resultados del fold
         fold_results.append({
