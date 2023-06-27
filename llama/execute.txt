@@ -1,1 +1,0 @@
-pip install -U pip && pip install accelerate==0.18.0 appdirs==1.4.4 bitsandbytes==0.37.2 datasets==2.10.1 fire==0.5.0 git+https://github.com/huggingface/peft.git git+https://github.com/huggingface/transformers.git torch==2.0.0 sentencepiece==0.1.97 tensorboardX==2.6 gradio==3.23.0
