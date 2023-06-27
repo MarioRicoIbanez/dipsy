@@ -1,5 +1,7 @@
+#Añadiendo las librerías necesarias para el encoding de los datos. 
 from sklearn.preprocessing import OneHotEncoder
 from transformers import AutoTokenizer, RobertaModel, get_linear_schedule_with_warmup
+
 from utils import *
 
 import traceback
@@ -37,13 +39,32 @@ def warning_filter(message, category, filename, lineno, file=None, line=None):
 warnings.showwarning = warning_filter
 warnings.filterwarnings("ignore", category=UserWarning, module="torch._inductor.ir")
 
+
+# Establecer la semilla para PyTorch en las operaciones CPU
+torch.manual_seed(42)
+
+# Establecer la semilla para PyTorch en las operaciones en GPU
+torch.cuda.manual_seed(42)
+torch.backends.cudnn.deterministic = True
+torch.backends.cudnn.benchmark = False
+
+np.random.seed(42)
+
 try:
     asyncio.run(send_telegram_message(message='Comenzando a entrenar'))
     # Check if GPU is available and set the default device
+
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(device)
+    #Download dataset
+    
+    #if it is not already downloaded
+    if not os.path.exists('../../data/ISEAR.csv'):
+        os.system('wget https://raw.githubusercontent.com/PoorvaRane/Emotion-Detector/master/ISEAR.csv -P ../../data')
+
     # Load and preprocess the dataset
-    df = load_and_preprocess_data('../../data/isear.csv')
+    df = load_and_preprocess_data('/home/mriciba/Projects/dipsy/RoBERTa/data/ISEAR.csv')
+    df['Emotion'] = df['Emotion'].replace('guit', 'guilt')
 
     # Set max sequence length and load the tokenizer
     tokenizer = AutoTokenizer.from_pretrained('roberta-base')
@@ -88,9 +109,9 @@ try:
     # Define the optimizer, learning rate scheduler, and loss function
     optimizer = torch.optim.AdamW(compiled_model.parameters(), LEARNING_RATE_KFOLD_FROZEN)
 
-    #total_steps = len(train_inputs) * EPOCHS_KFOLD_FROZEN
-    #scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0.1 * total_steps,
-    #                                            num_training_steps=total_steps)
+    total_steps = len(train_inputs) * EPOCHS_KFOLD_FROZEN
+    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0.1 * total_steps,
+                                               num_training_steps=total_steps)
 
     # Train the custom RoBERTa model using k-fold cross validation
 
