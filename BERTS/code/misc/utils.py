@@ -9,7 +9,7 @@ import torch
 from tqdm import tqdm
 from collections import namedtuple
 import torch.nn as nn
-from transformers import AdamW, get_linear_schedule_with_warmup, DebertaModel
+from transformers import RobertaModel, AdamW, get_linear_schedule_with_warmup
 import os
 from sklearn.model_selection import KFold
 import copy
@@ -17,6 +17,7 @@ import telegram
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.utils.multiclass import unique_labels
 
 
 # This function cleans the given text by removing punctuation marks, special characters, and converting to lowercase.
@@ -93,9 +94,9 @@ def create_dataloader(inputs, masks, labels, batch_size, device):
     return dataloader
 
 
-class CustomDeBERTa(nn.Module):
+class CustomRoBERTa(nn.Module):
     def __init__(self, base_model, num_classes=7):  # Change the default value of num_classes to 7
-        super(CustomDeBERTa, self).__init__()  # Inheritance of nn.Module overloading the constructor with CustomDeBERTa
+        super(CustomRoBERTa, self).__init__()  # Inheritance of nn.Module overloading the constructor with CustomRoBERTa
         self.base_model = base_model
         self.dropout = nn.Dropout(0.1)
         self.classifier = nn.Linear(base_model.config.hidden_size, num_classes)
@@ -113,7 +114,7 @@ class CustomDeBERTa(nn.Module):
 
     @classmethod
     def from_pretrained(cls, model_path, num_classes):
-        base_model = DebertaModel.from_pretrained(model_path)
+        base_model = RobertaModel.from_pretrained(model_path)
         custom_model = cls(base_model, num_classes)
         classifier_state_dict = torch.load(os.path.join(model_path, "classifier_state_dict.pt"))
         custom_model.classifier.load_state_dict(classifier_state_dict)
@@ -230,7 +231,6 @@ def plot_confusion_matrix_one_hot(y_true, y_pred, classes, cmap=plt.cm.Blues):
     ax.xaxis.set_ticklabels(classes);
     ax.yaxis.set_ticklabels(classes)
     plt.savefig('Confussion Matrix.png')
-    plt.close()
 
 
 def test_model(model, test_dataloader, loss_function):
@@ -353,7 +353,7 @@ def flat_accuracy(preds, labels):
     return output
 
 
-# Define the custom DeBERTa model class
+# Define the custom RoBERTa model class
 
 def save_and_plot_results(training_losses, validation_losses, prefix):
     import matplotlib.pyplot as plt
@@ -367,16 +367,7 @@ def save_and_plot_results(training_losses, validation_losses, prefix):
     plt.ylabel('Loss')
     plt.legend()
     plt.title('Training and Validation Losses for Each Fold')
-    # create figs first
-    if not os.path.exists(f"./FIGS"):
-        os.makedirs(f"./FIGS")
-
-    # if not created the folder, create it
-    if not os.path.exists(f"./FIGS/{prefix}/"):
-        os.makedirs(f"./FIGS/{prefix}/")
-
     plt.savefig(f"./FIGS/{prefix}/kfold_trainning")
-    plt.close()
 
 
 async def send_telegram_message(message, bot_token='6053416210:AAHg6dOl_eGMeQWiYnFimryxgVlI-15Ttto',
