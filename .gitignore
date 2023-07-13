@@ -5,3 +5,4 @@ datasets/
 **/experiments/
 **/new_model/
 *.json
+**/results_searching_hyperparameters/

@@ -25,8 +25,6 @@ from sklearn.utils.multiclass import unique_labels
 def clean_text(text):
     # to lower case
     text = text.lower()
-    # remove links
-    text = re.sub('https:\/\/\S+', '', text)
     # remove punctuation
     text = re.sub('[%s]' % re.escape(string.punctuation), '', text)
     # remove next line
