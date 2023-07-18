@@ -5,3 +5,6 @@ datasets/
 **/experiments/
 **/new_model/
 *.json
+.hypothesis/unicode_data/12.1.0/charmap.json.gz
+llama/lora-alpaca/runs/Jul18_13-44-58_364ecdd52045/events.out.tfevents.1689687899.364ecdd52045.65865.0
+llama/lora-alpaca/runs/Jul18_13-44-58_364ecdd52045/1689687899.042465/events.out.tfevents.1689687899.364ecdd52045.65865.1
