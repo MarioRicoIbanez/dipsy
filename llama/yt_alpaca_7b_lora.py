@@ -7,22 +7,20 @@ Original file is located at
     https://colab.research.google.com/drive/1rqWABmz2ZfolJOdoy6TRc6YI7d128cQO
 """
 
-!git clone https://github.com/tloen/alpaca-lora.git
+
 
 """# Alpaca LLaMa 7B LoRa"""
 
 # Commented out IPython magic to ensure Python compatibility.
 # %cd alpaca-lora/
+import os 
+os.system("git clone https://github.com/tloen/alpaca-lora.git")
+os.system("-q datasets loralib sentencepiece")
+os.system("pip uninstall transformers")
+os.system("pip install -q git+https://github.com/zphang/transformers@c3dc391")
+os.system("pip install -q git+https://github.com/huggingface/peft.git")
+os.system("pip install bitsandbytes")
 
-!pip install -q datasets loralib sentencepiece
-
-!pip uninstall transformers
-!pip install -q git+https://github.com/zphang/transformers@c3dc391
-# pip install git+https://github.com/zphang/transformers.git@llama_push
-
-!pip install -q git+https://github.com/huggingface/peft.git
-
-!pip install bitsandbytes
 
 """## Data Check"""
 
@@ -76,7 +74,7 @@ from transformers import AutoTokenizer, AutoConfig, LLaMAForCausalLM, LLaMAToken
 from peft import prepare_model_for_int8_training, LoraConfig, get_peft_model
 
 # Setting for A100 - For 3090
-MICRO_BATCH_SIZE = 8  # change to 4 for 3090
+MICRO_BATCH_SIZE = 4  # change to 4 for 3090
 BATCH_SIZE = 128
 GRADIENT_ACCUMULATION_STEPS = BATCH_SIZE // MICRO_BATCH_SIZE
 EPOCHS = 2  # paper uses 3
