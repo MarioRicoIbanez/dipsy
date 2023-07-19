@@ -104,8 +104,9 @@ args = TrainingArguments( output_dir=output_dir,
                         push_to_hub=False,
                         load_best_model_at_end=True,
                         metric_for_best_model='accuracy')
+model = model_init
 
-trainer = Trainer(model=model_init,
+trainer = Trainer(model=model,
                   args=args,
                   train_dataset=dataset_dict['train'],
                   eval_dataset=dataset_dict['validation'],
