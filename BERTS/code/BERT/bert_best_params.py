@@ -101,7 +101,7 @@ args = TrainingArguments( output_dir=output_dir,
                         save_strategy='epoch',
                         logging_steps=logging_steps,
                         fp16=True,
-                        push_to_hub=false,
+                        push_to_hub=False,
                         load_best_model_at_end=True,
                         metric_for_best_model='accuracy')
 
