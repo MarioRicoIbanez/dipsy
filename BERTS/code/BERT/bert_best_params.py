@@ -110,8 +110,7 @@ trainer = Trainer(model=model_init,
                   train_dataset=dataset_dict['train'],
                   eval_dataset=dataset_dict['validation'],
                   compute_metrics=compute_metrics,
-                  tokenizer=tokenizer,
-                  callbacks = [EarlyStoppingCallback(early_stopping_patience=int(0.5*epochs))])
+                  tokenizer=tokenizer)
 
 
 trainer.train()
