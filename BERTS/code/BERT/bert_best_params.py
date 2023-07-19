@@ -69,16 +69,7 @@ peft_config  = LoraConfig(
         task_type=TaskType.SEQ_CLS
         )
 
-def model_init(trial):
-    if 'model' in locals():
-        del model
-        torch.cuda.empty_cache()
 
-    model = AutoModelForSequenceClassification.from_pretrained(model_ckpt, num_labels=len(id2label), ignore_mismatched_sizes=True).to(device)
-    model = get_peft_model(model, peft_config)
-
-
-    return model
 
 
 def compute_objective(metrics):
@@ -104,7 +95,9 @@ args = TrainingArguments( output_dir=output_dir,
                         push_to_hub=False,
                         load_best_model_at_end=True,
                         metric_for_best_model='accuracy')
-model = model_init
+
+model = AutoModelForSequenceClassification.from_pretrained(model_ckpt, num_labels=len(id2label), ignore_mismatched_sizes=True).to(device)
+model = get_peft_model(model, peft_config)
 
 trainer = Trainer(model=model,
                   args=args,
