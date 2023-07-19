@@ -3,11 +3,11 @@
 import os
 import pandas as pd
 
-os.sytems('pip install datasets')
-os.sytems('pip install transformers[torch]')
-os.sytems('pip install accelerate>=0.20.1')
-os.sytems('pip install peft')
-os.sytems('pip install hugingface_hub')
+os.system('pip install datasets')
+os.system('pip install transformers[torch]')
+os.system('pip install accelerate>=0.20.1')
+os.system('pip install peft')
+os.system('pip install hugingface_hub')
 
 
 

@@ -12,11 +12,11 @@ Original file is located at
 import os
 import pandas as pd
 
-os.sytems('pip install datasets')
-os.sytems('pip install transformers[torch]')
-os.sytems('pip install accelerate>=0.20.1')
-os.sytems('pip install optuna')
-os.sytems('pip install peft')
+os.system('pip install datasets')
+os.system('pip install transformers[torch]')
+os.system('pip install accelerate>=0.20.1')
+os.system('pip install optuna')
+os.system('pip install peft')
 
 
 
