@@ -8,6 +8,7 @@ os.system('pip install transformers[torch]')
 os.system('pip install accelerate>=0.20.1')
 os.system('pip install peft')
 os.system('pip install hugingface_hub')
+os.system('huggingface-cli login --token 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')
 
 
 
@@ -78,7 +79,7 @@ def compute_objective(metrics):
 
 
 batch_size = 16
-epochs = 70
+epochs = 0
 
 output_dir = '../NASFolder/results_searching_hyperparameters'
 logging_steps = len(dataset_dict['train']) // batch_size
@@ -111,9 +112,6 @@ trainer.train()
 
 
 
-from huggingface_hub import HfApi
 
-# Assumes your Hugging Face API token is stored in an environment variable
-token = "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"
 
-trainer.push_to_hub("RikoteMaster/bert_best_params_lora_train", use_auth_token=token)
+trainer.push_to_hub("RikoteMaster/bert_best_params_lora_train", use_auth_token=True)
