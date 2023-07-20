@@ -79,7 +79,7 @@ def compute_objective(metrics):
 
 
 batch_size = 16
-epochs = 0
+epochs = 70
 
 output_dir = '../NASFolder/results_searching_hyperparameters'
 logging_steps = len(dataset_dict['train']) // batch_size
