@@ -118,6 +118,8 @@ args = TrainingArguments( output_dir=output_dir,
 
 model = AutoModelForSequenceClassification.from_pretrained(model_ckpt, num_labels=len(id2label), ignore_mismatched_sizes=True).to(device)
 model = get_peft_model(model, peft_config)
+model = model.to(device)
+model = model.compile()
 
 trainer = Trainer(model=model,
                   args=args,
