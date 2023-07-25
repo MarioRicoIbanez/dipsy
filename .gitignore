@@ -6,3 +6,8 @@ datasets/
 **/new_model/
 *.json
 **/results_searching_hyperparameters/
+**/checkpoint*/**
+**/runs/**
+charmap.json.gz
+=0.20.1
+
