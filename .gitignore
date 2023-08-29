@@ -7,3 +7,5 @@ datasets/
 *.json
 .hypothesis/unicode_data/12.1.0/charmap.json.gz
 **/lora-alpaca/
+**/results*
+**/llama-2-7b*
