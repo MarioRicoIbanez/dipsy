@@ -311,36 +311,9 @@ def kfold_cross_validation(train_inputs, train_labels, train_masks, model, devic
             'validation_accuracies': validation_accuracies
         })
 
-    print("Final Training with all data")
+  
 
-    train_inputs_all = torch.tensor(train_inputs)
-    train_labels_all = torch.tensor(train_labels)
-    train_masks_all = torch.tensor(train_masks)
-
-    train_dataloader = create_dataloader(train_inputs_all, train_masks_all, train_labels_all, batch_size, device)
-
-    final_model = copy.deepcopy(model)
-    final_model.to(device)
-
-    optimizer = AdamW(final_model.parameters(), lr=2e-5, eps=1e-8)
-    total_steps = len(train_dataloader) * epochs
-    scheduler = get_linear_schedule_with_warmup(optimizer, num_warmup_steps=0.1 * total_steps,
-                                                num_training_steps=total_steps)
-    loss_function = nn.CrossEntropyLoss()
-
-    # Entrena el modelo final con todos los datos de entrenamiento y sin validation_dataloader
-    training_losses, training_accuracies, _, _, _ = train_model(
-        final_model, train_dataloader, None, optimizer, scheduler, loss_function, device,
-        epochs if epoch_early_stopping == 0 else epoch_early_stopping)
-
-    fold_results.append({
-        'training_losses': training_losses,
-        'training_accuracies': training_accuracies,
-        'validation_losses': None,
-        'validation_accuracies': None
-    })
-
-    return fold_results, final_model
+    return fold_results, model_copy
 
 
 def flat_accuracy(preds, labels):
