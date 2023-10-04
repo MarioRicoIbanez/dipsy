@@ -1,43 +1,45 @@
-# Proyecto IA para la Psicología: Detección de Emociones con Arquitecturas Transformers
-## Descripción
-Este proyecto tiene como objetivo utilizar el potencial de los Transformers en IA para mejorar el sector de la psicología. Concretamente, nuestro propósito es detectar las emociones que los pacientes expresan durante sus sesiones de terapia.
+## AI Project for Psychology: Emotion Detection with Transformer Architectures
+## Description
+This project aims to leverage the potential of Transformers in AI to enhance the field of psychology. Specifically, our purpose is to detect the emotions that patients express during their therapy sessions.
 
-## ¿Por qué este proyecto?
-La detección y comprensión precisa de las emociones del paciente es crucial en la psicología. Sin embargo, las emociones pueden ser sutiles, complejas y a veces difíciles de identificar, incluso para los profesionales más experimentados. Este proyecto tiene como objetivo asistir en este proceso utilizando el poder de los Transformers en el procesamiento de lenguaje natural.
+The project structure is based on several branches, an analysis with BERT structures, a data augmentation branch, and branches using the well-known meta-model, called Llama and Llama 2.
 
-## Características
-Procesamiento de lenguaje natural con Transformers
-Detección de emociones en texto
-Herramienta de apoyo a la terapia psicológica
-Interfaz intuitiva y fácil de usar
-Respeto a la privacidad y seguridad de los datos
-## Requisitos de instalación
-Para ejecutar este proyecto, necesitarás lo siguiente:
+## Why This Project?
+The accurate detection and understanding of a patient's emotions are crucial in psychology. However, emotions can be subtle, complex, and sometimes challenging to identify, even for the most experienced professionals. This project aims to assist in this process by harnessing the power of Transformers in natural language processing.
+
+## Features
+Natural language processing with Transformers
+Emotion detection in text
+Psychological therapy support tool
+Intuitive and user-friendly interface
+Respect for data privacy and security
+## Installation Requirements
+To run this project, you will need the following:
 
 Python 3.8+
 PyTorch 1.8+
 Transformers 4.0+
 NumPy
 Pandas
-Puedes instalar las dependencias usando pip:
+You can install the dependencies using pip:
 
 sh
 Copy code
 pip install -r requirements.txt
-##Cómo utilizarlo
-Para utilizar este proyecto, sigue estos pasos:
+## How to Use
+To use this project, follow these steps:
 
-Clona este repositorio.
-Instala las dependencias (como se mencionó anteriormente).
-Ejecuta el archivo principal: python main.py
-Contribución
-Agradecemos cualquier contribución a este proyecto. Si tienes alguna idea o propuesta para mejorar la detección de emociones, no dudes en abrir una issue o hacer un pull request.
+Clone this repository.
+Install the dependencies (as mentioned above).
+Run the main file: python main.py
+## Contribution
+We welcome any contributions to this project. If you have any ideas or proposals to improve emotion detection, feel free to open an issue or submit a pull request.
 
-## Licencia
-Este proyecto se distribuye bajo la licencia MIT. Consulta el archivo LICENSE para obtener más información.
+## License
+This project is distributed under the MIT License. Please refer to the LICENSE file for more information.
 
-## Contacto
-Si tienes alguna pregunta o sugerencia, no dudes en contactarnos.
+## Contact
+If you have any questions or suggestions, do not hesitate to contact us.
 
-## Reconocimientos
-Agradecemos a todos los que han hecho posible este proyecto. Su contribución ha sido esencial para mejorar la detección y el entendimiento de las emociones en la psicología.
+## Acknowledgments
+We appreciate everyone who has made this project possible. Their contribution has been essential in enhancing emotion detection and understanding in psychology.
