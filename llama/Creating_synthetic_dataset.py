@@ -774,7 +774,11 @@ ds = Dataset.from_pandas(selected_sentences)
 ds.push_to_hub('RikoteMaster/llama2_classifying_and_explainning_v4')
 
 
+# %% [markdown]
+# ### REtrainning with new dataset
+
 # %%
+# !pip install -q accelerate==0.21.0 peft==0.4.0 bitsandbytes==0.40.2 transformers==4.31.0 trl==0.4.7
 
 # %%
 import os
@@ -839,7 +843,7 @@ use_nested_quant = False
 output_dir = "./results_selected"
 
 # Number of training epochs
-num_train_epochs = 7
+num_train_epochs = 12
 
 # Enable fp16/bf16 training (set bf16 to True with an A100)
 fp16 = False
@@ -984,6 +988,132 @@ trainer.train()
 
 # Save trained model
 trainer.model.save_pretrained(new_model)
+
+# %% [markdown]
+# ### Re running last model
+
+# %%
+import os
+import torch
+from datasets import load_dataset
+from transformers import (
+    AutoModelForCausalLM,
+    AutoTokenizer,
+    BitsAndBytesConfig,
+    HfArgumentParser,
+    TrainingArguments,
+    pipeline,
+    logging,
+)
+from peft import LoraConfig, PeftModel
+from trl import SFTTrainer
+
+# %%
+# The model that you want to train from the Hugging Face hub
+model_name = "meta-llama/Llama-2-7b-chat-hf"
+
+# The instruction dataset to use
+dataset_name = "RikoteMaster/llama2_classifying_and_explainning_v4"
+
+# Fine-tuned model name
+new_model = "llama-2-7b-sentiment-analyzer"
+
+################################################################################
+# QLoRA parameters
+################################################################################
+
+# LoRA attention dimension
+lora_r = 64
+
+# Alpha parameter for LoRA scaling
+lora_alpha = 16
+
+# Dropout probability for LoRA layers
+lora_dropout = 0.1
+
+################################################################################
+# bitsandbytes parameters
+################################################################################
+
+# Activate 4-bit precision base model loading
+use_4bit = True
+
+# Compute dtype for 4-bit base models
+bnb_4bit_compute_dtype = "float16"
+
+# Quantization type (fp4 or nf4)
+bnb_4bit_quant_type = "nf4"
+
+# Activate nested quantization for 4-bit base models (double quantization)
+use_nested_quant = False
+
+
+################################################################################
+# SFT parameters
+################################################################################
+
+# Maximum sequence length to use
+max_seq_length = None
+
+# Pack multiple short examples in the same input sequence to increase efficiency
+packing = False
+
+# Load the entire model on the GPU 0
+device_map = {"": 0}
+
+# %%
+# Load dataset (you can process it here)
+dataset = load_dataset(dataset_name, split="train")
+
+# Load tokenizer and model with QLoRA configuration
+compute_dtype = getattr(torch, bnb_4bit_compute_dtype)
+
+bnb_config = BitsAndBytesConfig(
+    load_in_4bit=use_4bit,
+    bnb_4bit_quant_type=bnb_4bit_quant_type,
+    bnb_4bit_compute_dtype=compute_dtype,
+    bnb_4bit_use_double_quant=use_nested_quant,
+)
+
+# Check GPU compatibility with bfloat16
+if compute_dtype == torch.float16 and use_4bit:
+    major, _ = torch.cuda.get_device_capability()
+    if major >= 8:
+        print("=" * 80)
+        print("Your GPU supports bfloat16: accelerate training with bf16=True")
+        print("=" * 80)
+
+# Load base model
+model = AutoModelForCausalLM.from_pretrained(
+    model_name,
+    quantization_config=bnb_config,
+    device_map=device_map
+)
+model.config.use_cache = False
+model.config.pretraining_tp = 1
+
+# Load LLaMA tokenizer
+tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+tokenizer.pad_token = tokenizer.eos_token
+tokenizer.padding_side = "right" # Fix weird overflow issue with fp16 training
+
+# %%
+# Reload model in FP16 and merge it with LoRA weights
+base_model = AutoModelForCausalLM.from_pretrained(
+    model_name,
+    low_cpu_mem_usage=True,
+    return_dict=True,
+    torch_dtype=torch.float16,
+    device_map=device_map,
+)
+model = PeftModel.from_pretrained(base_model, new_model)
+model = model.merge_and_unload()
+
+# Reload tokenizer to save it
+tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
+tokenizer.add_special_tokens({'pad_token': '[PAD]'})
+tokenizer.pad_token = tokenizer.eos_token
+tokenizer.padding_side = "right"
 
 # %%
 from datasets import load_dataset
