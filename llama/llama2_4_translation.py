@@ -231,7 +231,7 @@ pipe = pipeline(task="text-generation", model=model, tokenizer=tokenizer, max_le
 result = pipe(text)
 print(result)
 
-
+model.push_to_hub()
 # In[ ]:
 
 
