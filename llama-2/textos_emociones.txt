@@ -1,0 +1,104 @@
+Texto: Hello	Emoción: anger	Predicción: joy
+Texto: me caguen la puta	Emoción: anger	Predicción: disgust
+Texto: fucking hell	Emoción: anger	Predicción: anger
+Texto: I feel hungry	Emoción: fear	Predicción: disgust
+Texto: holy shit	Emoción: sadness	Predicción: fear
+Texto: Me encanta cuando mi amigo me dice de jugar al fútbol, pero sobre todo cuando le meto muchos goles	Emoción: joy	Predicción: joy
+Texto: I love it when my friend tells me to play soccer, but especially when I score a lot of goals for him.	Emoción: joy	Predicción: joy
+Texto: I'm tired of your and nonsense	Emoción: anger	Predicción: anger
+Texto: My ex-girlfriend has cheated on me	Emoción: disgust	Predicción: anger
+Texto: You hooked up with your ex again after he told you not to	Emoción: sadness	Predicción: anger
+Texto: I'm going to snort a line of cocaine	Emoción: joy	Predicción: guilt
+Texto: I'm in love with you…	Emoción: shame	Predicción: joy
+Texto: The other day a gypsy robbed me and stole 16 euros and 15 cents	Emoción: sadness	Predicción: anger
+Texto: I have finished exams!!	Emoción: joy	Predicción: joy
+Texto: It bothers me a lot that when I open the fridge there are no apples left for my lunch	Emoción: anger	Predicción: disgust
+Texto: It bothers me a lot that when I open the fridge there are no apples left for my lunch	Emoción: anger	Predicción: disgust
+Texto: I don't want anyone else to talk to me about love	Emoción: sadness	Predicción: disgust
+Texto: I have slept with my crush	Emoción: joy	Predicción: guilt
+Texto: 	Emoción: sadness	Predicción: guilt
+Texto: I just saw that my mother has made me 5 missed calls, when I get home I'm going to get the rant of the century	Emoción: fear	Predicción: anger
+Texto: I don't like that boy	Emoción: disgust	Predicción: disgust
+Texto: I've snorted 3 grams of cocaine	Emoción: joy	Predicción: guilt
+Texto: grumpy smurf outside my house	Emoción: anger	Predicción: disgust
+Texto: I have been cuckolded	Emoción: sadness	Predicción: anger
+Texto: i'm gay and nazi	Emoción: shame	Predicción: disgust
+Texto: I'm dancing sevillanas	Emoción: joy	Predicción: joy
+Texto: The vet told me that the dog is already cured, how lucky we have been	Emoción: joy	Predicción: joy
+Texto: I'm dancing sevillanas with gypsies	Emoción: joy	Predicción: joy
+Texto: I'm dancing sevillanas with some gypsies who mugged me	Emoción: joy	Predicción: disgust
+Texto: I'm sorry I told you now, I should have been more honest with you and told you a long time ago	Emoción: guilt	Predicción: guilt
+Texto: The other day I was having an ice cream when suddenly my sister threw it on top of me, I had to yell at her for what she had done	Emoción: anger	Predicción: anger
+Texto: I don't know if I want to continue	Emoción: fear	Predicción: sadness
+Texto: after some time with my girlfriend, she went on a trip and we broke up because she wanted to enjoy the experience	Emoción: sadness	Predicción: anger
+Texto: after some time with my girlfriend, she went on a trip and we broke up because she wanted to enjoy the experience, I felt horrible	Emoción: sadness	Predicción: sadness
+Texto: Alonso is going to win the 33...	Emoción: joy	Predicción: joy
+Texto: I WANT TO FUCK NOW	Emoción: anger	Predicción: anger
+Texto: I WANT TO FUCK NOW	Emoción: anger	Predicción: anger
+Texto: I'M GOING TO FUCK	Emoción: joy	Predicción: anger
+Texto: Juanmi in the end I don't fuck...	Emoción: sadness	Predicción: anger
+Texto: After spending the whole day to meet a girl, Juan Miguel finally couldn't have sex with her	Emoción: sadness	Predicción: anger
+Texto: Juanmi was going to have sex in Cádiz, but in the end the girl didn't come and he was left alone...	Emoción: sadness	Predicción: anger
+Texto: After spending the whole day to meet a girl, Juanmiguel finally couldn't have sex with her, and he stayed at home silo	Emoción: sadness	Predicción: anger
+Texto: There was a girl at the disco the other day that I liked. There was a moment that I stayed next to her, but she did not speak to her. When I saw her again, she was having an affair with another...	Emoción: sadness	Predicción: shame
+Texto: enough fat, you started a fight there, you're interrupting my show chubby	Emoción: anger	Predicción: anger
+Texto: I look to one side and literally bread and jam, I look to the other and croissant with fucking coffee, I look to the other side and belly, belly, belly, mileurista, mileurista, mileurista and it's like fuuuuuck, I can't last long here you know	Emoción: disgust	Predicción: anger
+Texto: Menudo PUTO BANGER CABRON	Emoción: joy	Predicción: anger
+Texto: eat	Emoción: anger	Predicción: guilt
+Texto: eh man, I see you quite comidete	Emoción: anger	Predicción: shame
+Texto: Hey man, take a little happiness pill and you'll see how well you have a crazy time	Emoción: joy	Predicción: joy
+Texto: I'm moving out and I'm confused, excited and scared, I don't know how I'm going to react and I'm overwhelmed by the future	Emoción: fear	Predicción: fear
+Texto: I was talking to my friend and he told me that Alejandro was laughing at me behind my back, from now on I won't want to meet him anymore	Emoción: anger	Predicción: anger
+Texto: When I feel alone I do not control my emotions or my thoughts	Emoción: fear	Predicción: sadness
+Texto: When I'm home alone and the lights are off I can't cross the hall	Emoción: fear	Predicción: fear
+Texto: The other day I fell in public	Emoción: shame	Predicción: fear
+Texto: The other day I fell in front of a lot of people on public transport	Emoción: shame	Predicción: shame
+Texto: I broke my friend's phone and decided to pay him	Emoción: guilt	Predicción: guilt
+Texto: They gave me a lot of things on my birthday!	Emoción: joy	Predicción: joy
+Texto: I miss my friends, I want to see them again	Emoción: sadness	Predicción: sadness
+Texto: I can't stand it when people fart in public.	Emoción: disgust	Predicción: disgust
+Texto: My brother hit me the other day and I had to return it to him	Emoción: anger	Predicción: anger
+Texto: We watched a thriller and my brother had to sleep with my parents	Emoción: fear	Predicción: fear
+Texto: I was shopping at the supermarket and I dropped the purchase	Emoción: shame	Predicción: shame
+Texto: I got caught talking bad about my best friend	Emoción: guilt	Predicción: guilt
+Texto: On the beach I see my friends that I haven't seen for years	Emoción: joy	Predicción: joy
+Texto: The quarantine meant that we could not see our relatives	Emoción: sadness	Predicción: sadness
+Texto: When you used the mask for more than two weeks it smelled horrible	Emoción: disgust	Predicción: disgust
+Texto: It hurts me to have you in the living room all day	Emoción: anger	Predicción: sadness
+Texto: It hit my balls having you in the living room all day	Emoción: anger	Predicción: disgust
+Texto: I get nervous when I see a big dog	Emoción: fear	Predicción: fear
+Texto: I get nervous when you leave everything in the middle without picking up	Emoción: anger	Predicción: fear
+Texto: I get mad when you leave everything in the middle without picking up	Emoción: anger	Predicción: anger
+Texto: I'm afraid my father will turn red as a tomato	Emoción: fear	Predicción: fear
+Texto: My mother yells at me a lot	Emoción: anger	Predicción: anger
+Texto: I miss her so much I wish this never happened	Emoción: sadness	Predicción: 100
+Texto: I miss her so much I wish this never happened	Emoción: sadness	Predicción: 596
+Texto: I miss her so much I wish this hadn't happened	Emoción: sadness	Predicción: 1000
+Texto: I miss her so much I wish this hadn't happened	Emoción: sadness	Predicción: 1
+Texto: I miss her so much I wish this hadn't happened what is this	Emoción: sadness	Predicción: 536
+Texto: I miss her so much I wish this hadn't happened what is this 1	Emoción: sadness	Predicción: 1
+Texto: I miss her so much I wish this hadn't happened	Emoción: sadness	Predicción: 2
+Texto: I miss her so much I wish this hadn't happened	Emoción: sadness	Predicción: 3000
+Texto: I miss her so much I wish this hadn't happened	Emoción: sadness	Predicción: 135
+Texto: I miss her so much I wish this hadn't happened	Emoción: sadness	Predicción: 3
+Texto: I miss her so much I wish this hadn't happened	Emoción: sadness	Predicción: 3133
+Texto: I miss her so much I wish this hadn't happened	Emoción: sadness	Predicción: sadness
+Texto: I miss her so much, I wish this never happened	Emoción: sadness	Predicción: guilt
+Texto: I miss her so much	Emoción: sadness	Predicción: 1000
+Texto: I miss her so much	Emoción: sadness	Predicción: 9500
+Texto: I miss her so much I wish this never happened	Emoción: sadness	Predicción: 2000
+Texto: I'm really mad at my father	Emoción: anger	Predicción: anger
+Texto: The other day I fell down the stairs and the whole neighborhood saw me	Emoción: shame	Predicción: 1000
+Texto: The other day I fell down the stairs and the whole neighborhood saw me	Emoción: shame	Predicción: fear
+Texto: The other day I fell down the stairs and the whole neighborhood saw me	Emoción: shame	Predicción: 0000
+Texto: The other day I fell down the stairs and the whole neighborhood saw me	Emoción: shame	Predicción: 5902
+Texto: The other day I fell down the stairs and the whole neighborhood saw me	Emoción: shame	Predicción: 2500
+Texto: The other day I fell down the stairs and the whole neighborhood saw me	Emoción: shame	Predicción: 3
+Texto: The other day I fell down the stairs and the whole neighborhood saw me	Emoción: shame	Predicción: guilt
+Texto: The other day I fell down the stairs and the whole neighborhood saw me	Emoción: shame	Predicción: 0000
+Texto: The other day I fell down the stairs and the whole neighborhood saw me	Emoción: shame	Predicción: fear
+Texto: The other day I fell down the stairs and the whole neighborhood saw me	Emoción: shame	Predicción: 1000
+Texto: The other day I fell down the stairs and the whole neighborhood saw me	Emoción: shame	Predicción: 0000
+Texto: The other day I fell down the stairs and the whole neighborhood saw me	Emoción: shame	Predicción: 1241
+Texto: The other day I fell down the stairs and the whole neighborhood saw me	Emoción: shame	Predicción: anger
+Texto: The other day I fell down the stairs and the whole neighborhood saw me.	Emoción: shame	Predicción: 34
