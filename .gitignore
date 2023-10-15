@@ -5,3 +5,5 @@ datasets/
 **/experiments/
 **/new_model/
 *.json
+**/bert_best_params/
+**/BERT/
