@@ -1,0 +1,8 @@
+{
+    "run_id": "11",
+    "objective": 1.234708469293003,
+    "hyperparameters": {
+        "learning_rate": 3.562121201880562e-05,
+        "weight_decay": 0.0007924379520012866
+    }
+}
