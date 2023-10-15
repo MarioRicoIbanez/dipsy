@@ -5,7 +5,7 @@ os.system('pip install huggingface_hub accelerate bitsandbytes peft deep_transla
 os.system('pip install git+https://github.com/huggingface/transformers.git@19f0b7dd02c7ea7cbf86cc87fe00667470266722')
 os.system('pip install git+https://github.com/huggingface/peft.git@99f792e8a3be001c55e71d148a7a8d25b931181f')
           
-os.system('huggingface-cli login --token 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')
+os.system('huggingface-cli login --token ')
 
 import json
 import transformers
