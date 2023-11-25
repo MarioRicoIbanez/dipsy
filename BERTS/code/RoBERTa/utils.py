@@ -13,7 +13,7 @@ from transformers import RobertaModel, AdamW, get_linear_schedule_with_warmup
 import os
 from sklearn.model_selection import KFold
 import copy
-import telegram
+# import telegram
 from sklearn.metrics import confusion_matrix
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -50,7 +50,8 @@ def translate_text(text):
 # This function loads and preprocesses data from a csv file, applies the clean_text function and adds a new column 'Text_processed'
 
 def load_and_preprocess_data(file_path):
-    df = pd.read_csv(file_path, names=['Emotion', 'Text', 'DNTKNOW']).drop(columns=['DNTKNOW']).dropna()
+    df = pd.read_csv(file_path, names=['Emotion', 'Text', 'DNTKNOW']).drop(
+        columns=['DNTKNOW']).dropna()
     df['Text_processed'] = df.Text.apply(clean_text)
     return df
 
@@ -59,15 +60,18 @@ def load_and_preprocess_data(file_path):
 # This function creates dataloaders using the given inputs, masks, labels, and batch size
 
 def create_dataloader(inputs, masks, labels, batch_size, device):
-    data = TensorDataset(inputs.to(device), masks.to(device), labels.to(device))
+    data = TensorDataset(
+        inputs.to(device), masks.to(device), labels.to(device))
     dataloader = DataLoader(data, batch_size=batch_size)
     return dataloader
 
 
 class CustomRoBERTa(nn.Module):
 
-    def __init__(self, base_model, num_classes=7):  # Change the default value of num_classes to 7
-        super(CustomRoBERTa, self).__init__()  # Inheritance of nn.Module overloading the constructor with CustomRoBERTa
+    # Change the default value of num_classes to 7
+    def __init__(self, base_model, num_classes=7):
+        # Inheritance of nn.Module overloading the constructor with CustomRoBERTa
+        super(CustomRoBERTa, self).__init__()
         self.base_model = base_model
         self.dropout = nn.Dropout(0.1)
         self.classifier = nn.Linear(base_model.config.hidden_size, num_classes)
@@ -87,7 +91,8 @@ class CustomRoBERTa(nn.Module):
     def from_pretrained(cls, model_path, num_classes):
         base_model = RobertaModel.from_pretrained(model_path)
         custom_model = cls(base_model, num_classes)
-        classifier_state_dict = torch.load(os.path.join(model_path, "classifier_state_dict.pt"))
+        classifier_state_dict = torch.load(
+            os.path.join(model_path, "classifier_state_dict.pt"))
         custom_model.classifier.load_state_dict(classifier_state_dict)
         return custom_model
 
@@ -104,9 +109,9 @@ def train_model(model, train_dataloader, validation_dataloader, optimizer, sched
 
     best_validation_loss = float("inf")
     consecutive_no_improvement = 0
-    
 
-    writer = SummaryWriter(f'runs/Fold_{fold}') # Creates a SummaryWriter object for TensorBoard
+    # Creates a SummaryWriter object for TensorBoard
+    writer = SummaryWriter(f'runs/Fold_{fold}')
 
     for epoch_i in range(epochs):
         print(f'Training epoch {epoch_i + 1}')
@@ -114,9 +119,9 @@ def train_model(model, train_dataloader, validation_dataloader, optimizer, sched
         total_loss = 0
         total_train_accuracy = 0
         for step, batch in enumerate(tqdm(train_dataloader, desc="Iteration")):
-            b_input_ids = batch[0]  
-            b_input_mask = batch[1]  
-            b_labels_one_hot = batch[2]  
+            b_input_ids = batch[0]
+            b_input_mask = batch[1]
+            b_labels_one_hot = batch[2]
             model.zero_grad()
 
             outputs = model(b_input_ids, attention_mask=b_input_mask)
@@ -154,9 +159,9 @@ def train_model(model, train_dataloader, validation_dataloader, optimizer, sched
         total_eval_loss = 0
 
         for batch in validation_dataloader:
-            b_input_ids = batch[0]  
-            b_input_mask = batch[1]  
-            b_labels_one_hot = batch[2]  
+            b_input_ids = batch[0]
+            b_input_mask = batch[1]
+            b_labels_one_hot = batch[2]
 
             with torch.no_grad():
                 outputs = model(b_input_ids, attention_mask=b_input_mask)
@@ -186,7 +191,8 @@ def train_model(model, train_dataloader, validation_dataloader, optimizer, sched
         else:
             consecutive_no_improvement += 1
             if consecutive_no_improvement >= patience:
-                print("Early stopping triggered, no improvement for {} consecutive epochs".format(patience))
+                print("Early stopping triggered, no improvement for {} consecutive epochs".format(
+                    patience))
 
                 epoch_early_stopping = epoch_i
 
@@ -200,17 +206,18 @@ def train_model(model, train_dataloader, validation_dataloader, optimizer, sched
 
 def plot_confusion_matrix_one_hot(y_true, y_pred, classes, cmap=plt.cm.Blues):
 
-
     cm = confusion_matrix(y_true, y_pred)
     print(cm)
     ax = plt.subplot()
-    sns.heatmap(cm, annot=True, fmt='g', ax=ax);  # annot=True to annotate cells, ftm='g' to disable scientific notation
+    # annot=True to annotate cells, ftm='g' to disable scientific notation
+    sns.heatmap(cm, annot=True, fmt='g', ax=ax)
 
     # labels, title and ticks
     ax.set_xlabel('Predicted labels')
     ax.set_ylabel('True labels')
     ax.set_title('Confusion Matrix')
-    ax.xaxis.set_ticklabels(classes); ax.yaxis.set_ticklabels(classes)
+    ax.xaxis.set_ticklabels(classes)
+    ax.yaxis.set_ticklabels(classes)
     plt.savefig('Confussion Matrix.png')
 
 
@@ -237,7 +244,8 @@ def test_model(model, test_dataloader, loss_function):
         y_true.extend(label_ids)
         y_pred.extend(np.argmax(logits, axis=1))
 
-        total_test_accuracy += flat_accuracy(logits, label_ids) * len(label_ids)
+        total_test_accuracy += flat_accuracy(logits,
+                                             label_ids) * len(label_ids)
         total_examples += len(label_ids)
 
         test_loss = loss_function(outputs.logits, b_labels_one_hot)
@@ -245,13 +253,74 @@ def test_model(model, test_dataloader, loss_function):
 
     avg_test_loss = total_test_loss / len(test_dataloader)
     avg_test_accuracy = total_test_accuracy / total_examples
-    print(f'Average test loss: {avg_test_loss:.2f}, Average test accuracy: {avg_test_accuracy:.2f}')
+    print(
+        f'Average test loss: {avg_test_loss:.2f}, Average test accuracy: {avg_test_accuracy:.2f}')
     return avg_test_loss, avg_test_accuracy, y_true, y_pred
 
 
 
 def kfold_cross_validation(train_inputs, train_labels, train_masks, model, device, epochs, lr, k_folds=5, batch_size=16,
                            patience=10):
+
+    if k_folds == 1:
+        print("Using 80% of dataset for trainning and 20% for validation")
+        fold_results = []
+        
+        epoch_early_stopping = 10
+        
+        model.to(device)
+
+        (train_inputs, val_inputs, train_labels, val_labels,
+         train_masks, val_masks) = train_test_split(
+            train_inputs, train_labels, train_masks,
+            test_size=0.2, random_state=42, stratify=train_labels)
+        
+        train_inputs = torch.as_tensor(train_inputs).to(device)
+        val_inputs = torch.as_tensor(val_inputs).to(device)
+        train_labels = torch.as_tensor(train_labels).to(device)
+        val_labels = torch.as_tensor(val_labels).to(device)
+        train_masks = torch.as_tensor(train_masks).to(device)
+        val_masks = torch.as_tensor(val_masks).to(device)
+        
+        print(train_inputs, train_labels)
+        train_dataloader = create_dataloader(
+            train_inputs, train_masks, train_labels, batch_size, device
+        )
+
+        val_dataloader = create_dataloader(
+            val_inputs, val_masks, val_labels, batch_size, device
+        )
+
+        # Crea el optimizador, scheduler y función de pérdida para el fold actual
+        optimizer = torch.optim.AdamW(model.parameters(), lr=lr, eps=1e-8)
+
+        optimizer = torch.optim.AdamW(
+            model.parameters(), lr=lr, eps=1e-8
+        )
+
+        total_steps = len(train_dataloader) * epochs
+        scheduler = get_linear_schedule_with_warmup(
+            optimizer, num_warmup_steps=0.1 * total_steps,
+            num_training_steps=total_steps
+        )
+        loss_function = nn.CrossEntropyLoss()
+
+        (training_losses, training_accuracies, validation_losses,
+         validation_accuracies, epoch_early_stopping) = train_model(
+            model, train_dataloader, val_dataloader, optimizer,
+            scheduler, loss_function, device,
+            epochs if epoch_early_stopping == 0 else epoch_early_stopping
+        )
+
+        # Guarda los resultados del entrenamiento
+        fold_results.append({
+            'training_losses': training_losses,
+            'training_accuracies': training_accuracies,
+            'validation_losses': validation_losses,
+            'validation_accuracies': validation_accuracies
+        })
+        return fold_results, model
+
     kfold = KFold(n_splits=k_folds, shuffle=True, random_state=42)
     fold_results = []
 
@@ -267,7 +336,8 @@ def kfold_cross_validation(train_inputs, train_labels, train_masks, model, devic
         validation_masks = torch.as_tensor(train_masks[validation_idx])
 
         # Crea dataloaders para el fold actual
-        train_dataloader = create_dataloader(train_inputs_fold, train_masks_fold, train_labels_fold, batch_size, device)
+        train_dataloader = create_dataloader(
+            train_inputs_fold, train_masks_fold, train_labels_fold, batch_size, device)
         validation_dataloader = create_dataloader(validation_inputs, validation_masks, validation_labels, batch_size,
                                                   device)
 
@@ -295,7 +365,7 @@ def kfold_cross_validation(train_inputs, train_labels, train_masks, model, devic
             'validation_losses': validation_losses,
             'validation_accuracies': validation_accuracies
         })
-        del model_copy 
+        del model_copy
         torch.cuda.empty_cache()
 
     print("Final Training with all data")
@@ -304,7 +374,8 @@ def kfold_cross_validation(train_inputs, train_labels, train_masks, model, devic
     train_labels_all = torch.tensor(train_labels)
     train_masks_all = torch.tensor(train_masks)
 
-    train_dataloader = create_dataloader(train_inputs_all, train_masks_all, train_labels_all, batch_size, device)
+    train_dataloader = create_dataloader(
+        train_inputs_all, train_masks_all, train_labels_all, batch_size, device)
 
     final_model = copy.deepcopy(model)
     final_model.to(device)
@@ -359,6 +430,38 @@ async def send_telegram_message(message, bot_token='6053416210:AAHg6dOl_eGMeQWiY
                                 chat_id='629647931'):
     bot = telegram.Bot(token=bot_token)
     await bot.send_message(chat_id=chat_id, text=message)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
