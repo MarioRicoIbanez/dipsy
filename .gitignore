@@ -6,3 +6,5 @@ datasets/
 **/new_model/
 *.json
 **/bert_best_params/
+**events**
+**checkpoint**
