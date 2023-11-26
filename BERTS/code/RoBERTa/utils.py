@@ -309,8 +309,9 @@ def kfold_cross_validation(train_inputs, train_labels, train_masks, model, devic
          validation_accuracies, epoch_early_stopping) = train_model(
             model, train_dataloader, val_dataloader, optimizer,
             scheduler, loss_function, device,
-            epochs if epoch_early_stopping == 0 else epoch_early_stopping
-        )
+            epochs, patience=patience)
+        
+
 
         # Guarda los resultados del entrenamiento
         fold_results.append({
