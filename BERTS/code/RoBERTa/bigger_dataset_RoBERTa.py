@@ -25,13 +25,13 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 MAX_LEN = 340
 TEST_SIZE = 0.2
 RANDOM_STATE = 42
-EPOCHS = 20
+EPOCHS = 100
 LEARNING_RATE = 3e-4
 K_FOLDS = 1
 BATCH_SIZE = 16
 DATASET_NAME = "RikoteMaster/Emotion_Recognition_4_llama2_chat"
 LOSS_FUNCTION = nn.CrossEntropyLoss()
-LAYERS_TO_UNFREEZE = -1
+LAYERS_TO_UNFREEZE = 0
 PATIENCE = 10
 
 
@@ -109,7 +109,7 @@ print(device)
 from datasets import load_dataset
 
 
-ds = load_dataset(DATASET_NAME, split="train")[0:63]
+ds = load_dataset(DATASET_NAME, split="train")
 
 
 print(ds)
