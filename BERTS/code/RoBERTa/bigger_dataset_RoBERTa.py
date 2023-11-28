@@ -25,14 +25,14 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 MAX_LEN = 340
 TEST_SIZE = 0.2
 RANDOM_STATE = 42
-EPOCHS = 100
+EPOCHS = 15
 LEARNING_RATE = 3e-4
 K_FOLDS = 1
 BATCH_SIZE = 16
 DATASET_NAME = "RikoteMaster/Emotion_Recognition_4_llama2_chat"
 LOSS_FUNCTION = nn.CrossEntropyLoss()
-LAYERS_TO_UNFREEZE = 0
-PATIENCE = 10
+LAYERS_TO_UNFREEZE = -2
+PATIENCE = 4
 
 
 
@@ -41,7 +41,9 @@ PATIENCE = 10
 #log params as different values
 
 run_name = f"Entrenamiento roberta base con {LAYERS_TO_UNFREEZE} capas descongeladas"
-mlflow.set_tracking_uri("../../../../mlruns")
+mlflow.set_tracking_uri("/workspace/NASFolder/mlruns")
+
+
 mlflow.set_experiment("RoBERTa")
 mlflow.start_run(run_name=run_name)
 
@@ -61,17 +63,17 @@ mlflow.log_param("PATIENCE", PATIENCE)
 #now LOAD_DIRECTORY
 
 if LAYERS_TO_UNFREEZE == -1:
-    LOAD_DIRECTORY = "./MODELS/RoBERTa_entrenado_base"
+    LOAD_DIRECTORY = "/workspace/NASFolder/MODELS/RoBERTa_entrenado_base"
 elif LAYERS_TO_UNFREEZE != 0:
-    LOAD_DIRECTORY = f"./MODELS/RoBERTa_entrenado_base_{LAYERS_TO_UNFREEZE}"
+    LOAD_DIRECTORY = f"/workspace/NASFolder/MODELS/RoBERTa_entrenado_base_{LAYERS_TO_UNFREEZE}"
 
 if LAYERS_TO_UNFREEZE != 0: 
-    SAVE_DIRECTORY = f"./MODELS/RoBERTa_entrenado_base_{LAYERS_TO_UNFREEZE}"
+    SAVE_DIRECTORY = f"/workspace/NASFolder/MODELS/RoBERTa_entrenado_base_{LAYERS_TO_UNFREEZE}"
     classifier_state_dict_path_save = os.path.join(
         SAVE_DIRECTORY, "classifier_state_dict.pt")
     
 else:
-    SAVE_DIRECTORY = f"./MODELS/RoBERTa_entrenado_base"
+    SAVE_DIRECTORY = f"/workspace/NASFolder/MODELS/RoBERTa_entrenado_base"
     classifier_state_dict_path_save = os.path.join(
         SAVE_DIRECTORY, "classifier_state_dict.pt")
 
@@ -150,9 +152,12 @@ base_model = RobertaModel.from_pretrained("roberta-base")
 if LAYERS_TO_UNFREEZE == 0: 
     for param in base_model.parameters():
         param.requires_grad = False
-    
-else: 
-    for param in base_model.encoder.layer[:LAYERS_TO_UNFREEZE].parameters():
+
+elif LAYERS_TO_UNFREEZE < 0:
+    total_layers = len(base_model.encoder.layer)
+    # Calcula el índice de la capa a partir del final
+    layer_to_unfreeze = total_layers + LAYERS_TO_UNFREEZE
+    for param in base_model.encoder.layer[layer_to_unfreeze].parameters():
         param.requires_grad = True
 
     # Initialize the custom RoBERTa model
@@ -257,7 +262,6 @@ plot_and_save_results(
 """
 
 
-mlflow.log_artifact("./Results")
 
 
 model_frozen.base_model.save_pretrained(SAVE_DIRECTORY)
