@@ -30,7 +30,7 @@ for i in range(0, -6, -1):
     EPOCHS = 100
     LEARNING_RATE = 3e-4
     K_FOLDS = 1
-    BATCH_SIZE = 64
+    BATCH_SIZE = 32
     DATASET_NAME = "RikoteMaster/Emotion_Recognition_4_llama2_chat"
     LOSS_FUNCTION = nn.CrossEntropyLoss()
     LAYERS_TO_UNFREEZE = i
@@ -266,6 +266,11 @@ for i in range(0, -6, -1):
 
     
     del model
+    # Al final de cada iteración del bucle for, libera la memoria de los tensores y modelos que ya no necesitas
+    del train_inputs, train_masks, train_labels, tokenized_features, target_one_hot, ds
+    del test_inputs, test_masks, test_labels, tokenized_test_features, test_ds
+    del base_model, model, compiled_model, optimizer, scheduler, kfold_results
+    torch.cuda.empty_cache()
 
     mlflow.end_run()
 
