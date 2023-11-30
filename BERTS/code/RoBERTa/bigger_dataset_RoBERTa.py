@@ -27,14 +27,14 @@ for i in range(0, -6, -1):
     MAX_LEN = 340
     TEST_SIZE = 0.2
     RANDOM_STATE = 42
-    EPOCHS = 1
+    EPOCHS = 100
     LEARNING_RATE = 3e-4
     K_FOLDS = 1
-    BATCH_SIZE = 16
+    BATCH_SIZE = 64
     DATASET_NAME = "RikoteMaster/Emotion_Recognition_4_llama2_chat"
     LOSS_FUNCTION = nn.CrossEntropyLoss()
     LAYERS_TO_UNFREEZE = i
-    PATIENCE = 10
+    PATIENCE = 4
 
     TEST_DATASET = "RikoteMaster/isear_augmented"
 
@@ -115,7 +115,7 @@ for i in range(0, -6, -1):
     from datasets import load_dataset
 
 
-    ds = load_dataset(DATASET_NAME, split="train")[0:63]
+    ds = load_dataset(DATASET_NAME, split="train")
 
 
 
@@ -215,7 +215,6 @@ for i in range(0, -6, -1):
 
 
 
-    mlflow.log_artifact("./Results")
 
 
     model.base_model.save_pretrained(SAVE_DIRECTORY)
@@ -227,7 +226,7 @@ for i in range(0, -6, -1):
     from sklearn.metrics import classification_report
 
     # Cargar el conjunto de datos de prueba
-    test_ds = load_dataset(TEST_DATASET, split="test")[0:1]
+    test_ds = load_dataset(TEST_DATASET, split="test")
 
     # Procesar el conjunto de datos de prueba
     tokenized_test_features = tokenizer.batch_encode_plus(test_ds['Text_processed'], add_special_tokens=True,
