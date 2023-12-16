@@ -67,7 +67,6 @@ for i in range(0, -13, -1):
     mlflow.log_param("LAYERS_TO_UNFREEZE", LAYERS_TO_UNFREEZE)
     mlflow.log_param("PATIENCE", PATIENCE)
     #register the model with mlflow
-    mlflow.pytorch.autolog(log_models=True)
 
 
     "DIRECTORIES"
