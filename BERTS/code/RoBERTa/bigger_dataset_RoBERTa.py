@@ -7,6 +7,9 @@ from utils import *
 from transformers import AutoTokenizer, RobertaModel, get_linear_schedule_with_warmup
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import OneHotEncoder
+from torch.utils.data import DataLoader, TensorDataset
+from sklearn.metrics import classification_report, accuracy_score
+import numpy as np
 import mlflow
 
 
@@ -21,16 +24,20 @@ os.environ['TF_CPP_MIN_LOG_LEVEL'] = '2'
 
 #create a for loop from 0 to -5
 
-for i in range(0, -6, -1):
+for i in range(0, -13, -1):
 
     """GLOBAL PARAMS"""
     MAX_LEN = 340
     TEST_SIZE = 0.2
     RANDOM_STATE = 42
     EPOCHS = 100
-    LEARNING_RATE = 3e-4
+    #if i = 0 LEARNING_RATE = 3e-4 else LEARNING_RATE = 3-e-5
+    if i == 0:
+        LEARNING_RATE = 3e-3
+    else:
+        LEARNING_RATE = 3e-5
     K_FOLDS = 1
-    BATCH_SIZE = 32
+    BATCH_SIZE = 64
     DATASET_NAME = "RikoteMaster/Emotion_Recognition_4_llama2_chat"
     LOSS_FUNCTION = nn.CrossEntropyLoss()
     LAYERS_TO_UNFREEZE = i
@@ -44,9 +51,9 @@ for i in range(0, -6, -1):
 
     #log params as different values
 
-    run_name = f"Prueba Entrenamiento roberta base con {LAYERS_TO_UNFREEZE} capas descongeladas"
-    mlflow.set_tracking_uri("../../../../mlruns")
-    mlflow.set_experiment("RoBERTa")
+    run_name = f"Entrenamiento roberta base con {LAYERS_TO_UNFREEZE} capas descongeladas, LR mixed"
+    mlflow.set_tracking_uri("/workspace/NASFolder/mlruns")
+    mlflow.set_experiment("RoBERTa_LAYERED_TRAINNING")
     mlflow.start_run(run_name=run_name)
 
     mlflow.log_param("MAX_LEN", MAX_LEN)
@@ -66,18 +73,19 @@ for i in range(0, -6, -1):
     "DIRECTORIES"
     #now LOAD_DIRECTORY
 
+
     if LAYERS_TO_UNFREEZE == -1:
-        LOAD_DIRECTORY = "./MODELS/RoBERTa_entrenado_base"
+        LOAD_DIRECTORY = "/workspace/NASFolder/MODELS/RoBERTa_entrenado_base"
     elif LAYERS_TO_UNFREEZE != 0:
-        LOAD_DIRECTORY = f"./MODELS/RoBERTa_entrenado_base_{LAYERS_TO_UNFREEZE+1}"
+        LOAD_DIRECTORY = f"/workspace/NASFolder/MODELS/RoBERTa_entrenado_base_{LAYERS_TO_UNFREEZE+1}"
 
     if LAYERS_TO_UNFREEZE != 0: 
-        SAVE_DIRECTORY = f"./MODELS/RoBERTa_entrenado_base_{LAYERS_TO_UNFREEZE}"
+        SAVE_DIRECTORY = f"/workspace/NASFolder/MODELS/RoBERTa_entrenado_base_{LAYERS_TO_UNFREEZE}"
         classifier_state_dict_path_save = os.path.join(
             SAVE_DIRECTORY, "classifier_state_dict.pt")
         
     else:
-        SAVE_DIRECTORY = f"./MODELS/RoBERTa_entrenado_base"
+        SAVE_DIRECTORY = f"/workspace/NASFolder/MODELS/RoBERTa_entrenado_base"
         classifier_state_dict_path_save = os.path.join(
             SAVE_DIRECTORY, "classifier_state_dict.pt")
 
@@ -222,6 +230,12 @@ for i in range(0, -6, -1):
     torch.save(model.classifier.state_dict(), classifier_state_dict_path_save)
     print("Model saved successfully")
 
+    del train_inputs, train_masks, train_labels, tokenized_features, target_one_hot, ds
+    del base_model 
+    del compiled_model
+    torch.cuda.empty_cache()
+
+
 
     from sklearn.metrics import classification_report
 
@@ -241,35 +255,62 @@ for i in range(0, -6, -1):
 
     # Cargar el modelo entrenado
 
-    test_inputs = test_inputs.to(device)
-    test_masks = test_masks.to(device)
-
-    # Usar el modelo para hacer predicciones en el conjunto de datos de prueba
-    model.eval()
-    with torch.no_grad():
-        outputs = model(test_inputs, test_masks)
-        logits = outputs.logits
-        _, preds = torch.max(logits, dim=1)
     
-    # Convertir test_labels a etiquetas binarias
-    test_labels_binary = np.argmax(test_labels, axis=1)
 
+
+    # Crear un TensorDataset para los datos de prueba
+    test_dataset = TensorDataset(test_inputs, test_masks, torch.tensor(np.argmax(test_labels, axis=1)))
+
+    # Crear un DataLoader para los datos de prueba
+    test_dataloader = DataLoader(test_dataset, batch_size=BATCH_SIZE, shuffle=False)
+
+       # Preparar el modelo para evaluar
+    model.eval()
+
+    all_preds = []
+    all_label_ids = []
+
+    with torch.no_grad():
+        for batch in test_dataloader:
+            b_input_ids, b_input_mask, b_labels = batch
+
+            # Mover los lotes al dispositivo (asumiendo que 'device' está definido)
+            b_input_ids = b_input_ids.to(device)
+            b_input_mask = b_input_mask.to(device)
+
+            # Realizar la predicción
+            outputs = model(b_input_ids, attention_mask=b_input_mask)
+            logits = outputs.logits
+
+            # Mover logits y etiquetas a CPU para su procesamiento
+            logits = logits.detach().cpu().numpy()
+            label_ids = b_labels.to('cpu').numpy()
+
+            # Guardar predicciones y etiquetas
+            all_preds.extend(np.argmax(logits, axis=1))
+            all_label_ids.extend(label_ids)
+
+    # Calcular el accuracy
+    accuracy = accuracy_score(all_label_ids, all_preds)
+
+    # Asegúrate de que test_labels_binary esté definido correctamente
     # Calcular las métricas de rendimiento
-    report = classification_report(test_labels_binary, preds.cpu().numpy(), output_dict=True)
+    report = classification_report(all_label_ids, all_preds, output_dict=True)
+
     # Registrar las métricas de rendimiento en MLflow
-    mlflow.log_metric("precision", report["macro avg"]["precision"])
-    mlflow.log_metric("recall", report["macro avg"]["recall"])
-    mlflow.log_metric("f1-score", report["macro avg"]["f1-score"])
+    mlflow.log_metric("test_precision", report["macro avg"]["precision"])
+    mlflow.log_metric("test_recall", report["macro avg"]["recall"])
+    mlflow.log_metric("test_f1-score", report["macro avg"]["f1-score"])
+    mlflow.log_metric("test_accuracy", accuracy)
 
     print(report)
 
 
+
     
-    del model
     # Al final de cada iteración del bucle for, libera la memoria de los tensores y modelos que ya no necesitas
-    del train_inputs, train_masks, train_labels, tokenized_features, target_one_hot, ds
     del test_inputs, test_masks, test_labels, tokenized_test_features, test_ds
-    del base_model, model, compiled_model, optimizer, scheduler, kfold_results
+    del optimizer, scheduler, kfold_results
     torch.cuda.empty_cache()
 
     mlflow.end_run()
