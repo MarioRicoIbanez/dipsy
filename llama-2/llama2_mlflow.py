@@ -27,7 +27,7 @@ mlflow.set_experiment("llama2")
 model_name = "meta-llama/Llama-2-7b-chat-hf"
 
 # The instruction dataset to use
-dataset_name = "RikoteMaster/Emotion_Recognition_4_llama2_chat"
+dataset_name = "RikoteMaster/emotion_recog_sample"
 
 # Fine-tuned model name
 new_model = "llama-2-7b-sentiment-analyzer"
@@ -69,14 +69,14 @@ use_nested_quant = False
 output_dir = "./results_selected"
 
 # Number of training epochs
-num_train_epochs = 12
+num_train_epochs = 1
 
 # Enable fp16/bf16 training (set bf16 to True with an A100)
 fp16 = False
 bf16 = True
 
 # Batch size per GPU for training
-per_device_train_batch_size = 32
+per_device_train_batch_size = 16
 
 # Batch size per GPU for evaluation
 per_device_eval_batch_size = 4
@@ -153,11 +153,6 @@ mlflow.log_param("output_dir", output_dir)
 mlflow.log_param("num_train_epochs", num_train_epochs)
 mlflow.log_param("fp16", fp16)
 mlflow.log_param("bf16", bf16)
-mlflow.log_param("per_device_train_batch_size", per_device_train_batch_size)
-mlflow.log_param("per_device_eval_batch_size", per_device_eval_batch_size)
-mlflow.log_param("gradient_accumulation_steps", gradient_accumulation_steps)
-mlflow.log_param("gradient_checkpointing", gradient_checkpointing)
-mlflow.log_param("max_grad_norm", max_grad_norm)
 mlflow.log_param("learning_rate", learning_rate)
 mlflow.log_param("weight_decay", weight_decay)
 mlflow.log_param("optim", optim)
@@ -259,7 +254,7 @@ trainer.model.save_pretrained(new_model)
 
 from datasets import load_dataset
 
-ds = load_dataset("RikoteMaster/isear_for_llama2")
+ds = load_dataset("RikoteMaster/isear_augmented_sample")
 
 texts = ds['test']['Text_processed']
 labels = ds['test']['Emotion']
@@ -274,7 +269,7 @@ for sentence, label in zip(texts, labels):
     pipe = pipeline(task="text-generation", model=model, tokenizer=tokenizer, max_length=len(tokenizer(text)) + 200)
     result = pipe(text)
     try:
-        detected = result[0]['generated_text'].split('Emotion:')[2].split()[0]
+        detected = result[0]['generated_text'].split('[/INST]')[1].split()[0]
         if label != detected:
             wrong_detection.append(str(result) + " THE TRUE LABEL IS "+ label)
             label_detection.append(detected)
