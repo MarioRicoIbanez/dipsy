@@ -12,25 +12,39 @@ from transformers import (
 )
 from peft import LoraConfig, PeftModel
 from trl import SFTTrainer
-
+import re 
 
 import mlflow
 
 #create mlflow experiment
-mlflow.set_experiment("llama2")
 
 
 
 
 
 # The model that you want to train from the Hugging Face hub
+#model_name = "mistralai/Mistral-7B-Instruct-v0.2"
 model_name = "meta-llama/Llama-2-7b-chat-hf"
 
 # The instruction dataset to use
-dataset_name = "RikoteMaster/emotion_recog_sample"
+#dataset_name = "RikoteMaster/isear_rauw"
+#dataset_name = "RikoteMaster/isear_for_llama2_v3"
+#dataset_name = "RikoteMaster/Emotion_Recognition_4_llama2_chat"
+dataset_name = "RikoteMaster/llama2_classifying_and_explainning_v5"
 
 # Fine-tuned model name
-new_model = "llama-2-7b-sentiment-analyzer"
+# Define the regular expression pattern
+pattern = r'[^/]+$'
+
+# Find the matches in the model_name and dataset_name strings
+model_match = re.findall(pattern, model_name)
+dataset_match = re.findall(pattern, dataset_name)
+
+# Concatenate the matches with a dash to form the new_model name
+new_model = model_match[0] + '-' + dataset_match[0]
+
+mlflow.set_experiment(new_model)
+
 
 ################################################################################
 # QLoRA parameters
@@ -69,7 +83,7 @@ use_nested_quant = False
 output_dir = "./results_selected"
 
 # Number of training epochs
-num_train_epochs = 1
+num_train_epochs = 3
 
 # Enable fp16/bf16 training (set bf16 to True with an A100)
 fp16 = False
@@ -94,7 +108,7 @@ max_grad_norm = 0.3
 learning_rate = 3e-6
 
 # Weight decay to apply to all layers except bias/LayerNorm weights
-weight_decay = 0.001
+weight_decay = 0.1
 
 # Optimizer to use
 optim = "paged_adamw_32bit"
@@ -135,7 +149,7 @@ device_map = {"": 0}
 #log params as different values
 
 run_name = f"Entrenando {model_name} con {dataset_name}"
-mlflow.set_tracking_uri("/workspace/NASFolder/mlruns")
+mlflow.set_tracking_uri("http://158.42.170.253:5000")
 mlflow.set_experiment("LLMs")
 mlflow.start_run(run_name=run_name)
 
@@ -209,6 +223,7 @@ peft_config = LoraConfig(
     r=lora_r,
     bias="none",
     task_type="CAUSAL_LM",
+    target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
 )
 
 # Set training parameters
@@ -247,14 +262,15 @@ trainer = SFTTrainer(
 trainer.train()
 
 # Save trained model
-trainer.model.save_pretrained(new_model)
+trainer.model.push_to_hub(new_model, private=True)
+tokenizer.push_to_hub(new_model, private=True)
 
 
 
 
 from datasets import load_dataset
 
-ds = load_dataset("RikoteMaster/isear_augmented_sample")
+ds = load_dataset("RikoteMaster/isear_rauw")
 
 texts = ds['test']['Text_processed']
 labels = ds['test']['Emotion']
@@ -264,12 +280,28 @@ label_detection = []
 wrong_detection = []
 corrects = 0
 exceptions = 0
+
 for sentence, label in zip(texts, labels):
-    text = f"""<s>[INST] In this task, you will be performing a classification exercise aimed at identifying the underlying emotion conveyed by a given sentence. The emotions to consider are as follows: Anger, Joy, Sadnes, Guilt, Shame, fear or disgust Sentence: {sentence} [/INST] """
-    pipe = pipeline(task="text-generation", model=model, tokenizer=tokenizer, max_length=len(tokenizer(text)) + 200)
+    #text = f"""<s>[INST] In this task, you will be performing a classification exercise aimed at identifying the underlying emotion conveyed by a given sentence. The emotions to consider are as follows: Anger, Joy, Sadnes, Guilt, Shame, fear or disgust Sentence: {sentence} [/INST] """
+    text = f"""<s>[INST] In this task, you will be performing a classification exercise aimed at identifying the underlying emotion conveyed by a given sentence. The emotions to consider are as follows: Anger, Joy, Sadness, Guilt, Shame, Fear, or Disgust. Firstly, you have to express the explanation of why you think it's one emotion or another to make a pre-explanation. After that, you will predict the emotion expressed by the sentence. The format will be Explanation: and later Emotion: Sentence: {sentence} [/INST] """
+    pipe = pipeline(task="text-generation", model=model, tokenizer=tokenizer, max_length=len(tokenizer.tokenize(text)) + 5)
     result = pipe(text)
     try:
-        detected = result[0]['generated_text'].split('[/INST]')[1].split()[0]
+        if(False):
+            detected=None
+            detected = result[0]['generated_text'].split('[/INST]')[1].split()[0] #USED FOR NORMAL CLASSIFICATION WITHOUT EXPLAINNING
+        else: #used for classifying and explainning
+            result = result.split('[/INST]')[1].split('Emotion: ')[1]
+
+            # Define a regular expression pattern to match the specified emotions
+            pattern = r'\b(Anger|Joy|Sadness|Guilt|Shame|Fear|Disgust)\b'
+
+            # Search for the pattern in the result string
+            match = re.search(pattern, result, flags=re.IGNORECASE)
+
+            # Extract the matched emotion if it exists
+            detected = match.group(0) if match else None
+
         if label != detected:
             wrong_detection.append(str(result) + " THE TRUE LABEL IS "+ label)
             label_detection.append(detected)
