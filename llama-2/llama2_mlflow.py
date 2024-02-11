@@ -1,6 +1,6 @@
-import os
+import re
 import torch
-from datasets import load_dataset
+from dataclasses import dataclass, field
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
@@ -8,31 +8,36 @@ from transformers import (
     HfArgumentParser,
     TrainingArguments,
     pipeline,
-    logging,
+    logging
 )
-from peft import LoraConfig, PeftModel
+from datasets import load_dataset
 from trl import SFTTrainer
-import re 
-
+from peft import LoraConfig
 import mlflow
 
-#create mlflow experiment
+import os 
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
 
+# Define a data class for your custom arguments
+@dataclass
+class CustomTrainingArguments:
+    model_name: str = field(metadata={"help": "Model identifier from the Hugging Face Hub."})
+    dataset_name: str = field(metadata={"help": "Dataset identifier from the Hugging Face Hub."})
+    num_train_epochs: int = field(default=3, metadata={"help": "Total number of training epochs to perform."})
+    learning_rate: float = field(default=5e-5, metadata={"help": "The initial learning rate for Adam."})
+    explainning: bool = field(default=False, metadata={"help": "If the model is going to be trained with explanation or not."})
 
+# Parse arguments from the command line
+parser = HfArgumentParser(CustomTrainingArguments)
+training_args, = parser.parse_args_into_dataclasses()
 
+# Assign parsed arguments to variables
+model_name = training_args.model_name
+dataset_name = training_args.dataset_name
+num_train_epochs = training_args.num_train_epochs
+learning_rate = training_args.learning_rate
 
-
-# The model that you want to train from the Hugging Face hub
-#model_name = "mistralai/Mistral-7B-Instruct-v0.2"
-model_name = "meta-llama/Llama-2-7b-chat-hf"
-
-# The instruction dataset to use
-#dataset_name = "RikoteMaster/isear_rauw"
-#dataset_name = "RikoteMaster/isear_for_llama2_v3"
-#dataset_name = "RikoteMaster/Emotion_Recognition_4_llama2_chat"
-dataset_name = "RikoteMaster/llama2_classifying_and_explainning_v5"
-
-# Fine-tuned model name
 # Define the regular expression pattern
 pattern = r'[^/]+$'
 
@@ -80,17 +85,16 @@ use_nested_quant = False
 ################################################################################
 
 # Output directory where the model predictions and checkpoints will be stored
-output_dir = "./results_selected"
+output_dir = "/checkpoints"
 
 # Number of training epochs
-num_train_epochs = 3
 
 # Enable fp16/bf16 training (set bf16 to True with an A100)
 fp16 = False
 bf16 = True
 
 # Batch size per GPU for training
-per_device_train_batch_size = 16
+per_device_train_batch_size = 32
 
 # Batch size per GPU for evaluation
 per_device_eval_batch_size = 4
@@ -104,11 +108,9 @@ gradient_checkpointing = True
 # Maximum gradient normal (gradient clipping)
 max_grad_norm = 0.3
 
-# Initial learning rate (AdamW optimizer)
-learning_rate = 3e-6
 
 # Weight decay to apply to all layers except bias/LayerNorm weights
-weight_decay = 0.1
+weight_decay = 0.001
 
 # Optimizer to use
 optim = "paged_adamw_32bit"
@@ -127,7 +129,7 @@ warmup_ratio = 0.03
 group_by_length = True
 
 # Save checkpoint every X updates steps
-save_steps = 25
+save_steps = 200
 
 # Log every X updates steps
 logging_steps = 25
@@ -276,32 +278,46 @@ texts = ds['test']['Text_processed']
 labels = ds['test']['Emotion']
 
 
-label_detection = []
-wrong_detection = []
+
+
+# Initialize counters and lists for tracking
 corrects = 0
+wrong_detection = []
+label_detection = []
 exceptions = 0
+predicted_labels = [] 
 
 for sentence, label in zip(texts, labels):
-    #text = f"""<s>[INST] In this task, you will be performing a classification exercise aimed at identifying the underlying emotion conveyed by a given sentence. The emotions to consider are as follows: Anger, Joy, Sadnes, Guilt, Shame, fear or disgust Sentence: {sentence} [/INST] """
-    text = f"""<s>[INST] In this task, you will be performing a classification exercise aimed at identifying the underlying emotion conveyed by a given sentence. The emotions to consider are as follows: Anger, Joy, Sadness, Guilt, Shame, Fear, or Disgust. Firstly, you have to express the explanation of why you think it's one emotion or another to make a pre-explanation. After that, you will predict the emotion expressed by the sentence. The format will be Explanation: and later Emotion: Sentence: {sentence} [/INST] """
-    pipe = pipeline(task="text-generation", model=model, tokenizer=tokenizer, max_length=len(tokenizer.tokenize(text)) + 5)
+    if not training_args.explainning:
+        text = f"""<s>[INST] In this task, you will be performing a classification exercise aimed at identifying the underlying emotion conveyed by a given sentence. The emotions to consider are as follows: Anger, Joy, Sadnes, Guilt, Shame, fear or disgust Sentence: {sentence} [/INST] """
+    else:
+        text = f"""<s>[INST] In this task, you will be performing a classification exercise aimed at identifying the underlying emotion conveyed by a given sentence. The emotions to consider are as follows: Anger, Joy, Sadness, Guilt, Shame, Fear, or Disgust. Firstly, you have to express the explanation of why you think it's one emotion or another to make a pre-explanation. After that, you will predict the emotion expressed by the sentence. The format will be Explanation: and later Emotion: Sentence: {sentence} [/INST] """
+    
+    pipe = pipeline(task="text-generation", model=model, tokenizer=tokenizer, max_length=len(tokenizer.tokenize(text)) + 5 if not training_args.explainning else len(tokenizer.tokenize(text)) + 70)
     result = pipe(text)
+    print(result)
     try:
-        if(False):
-            detected=None
-            detected = result[0]['generated_text'].split('[/INST]')[1].split()[0] #USED FOR NORMAL CLASSIFICATION WITHOUT EXPLAINNING
-        else: #used for classifying and explainning
-            result = result.split('[/INST]')[1].split('Emotion: ')[1]
+        pattern = r'\b(anger|joy|sadness|guilt|shame|fear|disgust)\b'
 
-            # Define a regular expression pattern to match the specified emotions
-            pattern = r'\b(Anger|Joy|Sadness|Guilt|Shame|Fear|Disgust)\b'
+        # Assume we are in the context where classification with explanation is not required
+        if not training_args.explainning:
+            # Extract the first word after '[/INST]' marker, handling both upper and lower cases
+            result_splitted = result[0]['generated_text'].split('[/INST]')[1]
+            detected = re.search(pattern, result_splitted, flags=re.IGNORECASE)
+            detected = detected.group(0) if detected else 'None'
+            detected = detected.lower()
+            predicted_labels.append(detected)
+        else:
+            # For classifying and explaining, extract the emotion after 'Emotion: '
+            result = result[0]['generated_text']
+            result_splitted = result.split("Emotion: ")[2]
+            match = re.search(pattern, result_splitted, flags=re.IGNORECASE)
+            detected = match.group(0).lower() if match else 'None'  # Capitalize the detected emotion for consistency
+            detected = detected.lower()
+            predicted_labels.append(detected)
 
-            # Search for the pattern in the result string
-            match = re.search(pattern, result, flags=re.IGNORECASE)
-
-            # Extract the matched emotion if it exists
-            detected = match.group(0) if match else None
-
+        
+        print(detected)
         if label != detected:
             wrong_detection.append(str(result) + " THE TRUE LABEL IS "+ label)
             label_detection.append(detected)
@@ -313,9 +329,30 @@ for sentence, label in zip(texts, labels):
         label_detection.append(detected)
         exceptions += 1 
         
+# Ensure that 'None' is included in both the actual and predicted labels
+labels_extended = labels + ['none']  # This assumes 'labels' is a list of actual labels
+labels_example = ["anger", "joy", "sadness", "guilt", "shame", "fear", "disgust", "none"]  # Include 'none' as a valid label
 
+cm = confusion_matrix(labels, predicted_labels, labels=labels_example)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels_example)
+disp.plot(cmap=plt.cm.Blues)
 
-print(corrects/len(texts))
+# Define the directory
+dir_name = "workspace/data/confusion_matrix/"
+
+# Check if the directory exists
+if not os.path.exists(dir_name):
+    # If not, create the directory
+    os.makedirs(dir_name)
+
+# Now you can save the figure
+plt.savefig(dir_name + 'confusion_matrix.png')  # Corrected file path to a writable directory
+
+print("Confusion matrix saved as 'confusion_matrix.png'.")
+print(f"Accuracy: {corrects / len(texts)}")
+
+#save the artifact confusion matrix
+mlflow.log_artifact(dir_name + 'confusion_matrix.png')
 
 
 
