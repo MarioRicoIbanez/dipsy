@@ -309,6 +309,7 @@ for sentence, label in zip(texts, labels):
             predicted_labels.append(detected)
         else:
             # For classifying and explaining, extract the emotion after 'Emotion: '
+            detected = 'None'
             result = result[0]['generated_text']
             result_splitted = result.split("Emotion: ")[2]
             match = re.search(pattern, result_splitted, flags=re.IGNORECASE)
