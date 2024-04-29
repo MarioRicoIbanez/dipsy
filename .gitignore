@@ -8,3 +8,9 @@ datasets/
 **/bert_best_params/
 **events**
 **checkpoint**
+**mlruns**
+**GIF**
+**__pycache__**
+*.safetensors
+*.png
+*.bin

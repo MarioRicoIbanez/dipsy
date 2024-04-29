@@ -1,6 +1,6 @@
-import os
+import re
 import torch
-from datasets import load_dataset
+from dataclasses import dataclass, field
 from transformers import (
     AutoModelForCausalLM,
     AutoTokenizer,
@@ -8,29 +8,44 @@ from transformers import (
     HfArgumentParser,
     TrainingArguments,
     pipeline,
-    logging,
+    logging
 )
-from peft import LoraConfig, PeftModel
+from datasets import load_dataset
 from trl import SFTTrainer
-
-
+from peft import LoraConfig
 import mlflow
 
-#create mlflow experiment
-mlflow.set_experiment("llama2")
+# Define a data class for your custom arguments
+@dataclass
+class CustomTrainingArguments:
+    model_name: str = field(metadata={"help": "Model identifier from the Hugging Face Hub."})
+    dataset_name: str = field(metadata={"help": "Dataset identifier from the Hugging Face Hub."})
+    num_train_epochs: int = field(default=3, metadata={"help": "Total number of training epochs to perform."})
+    learning_rate: float = field(default=5e-5, metadata={"help": "The initial learning rate for Adam."})
+    explainning: bool = field(default=False, metadata={"help": "If the model is going to be trained with explanation or not."})
 
+# Parse arguments from the command line
+parser = HfArgumentParser(CustomTrainingArguments)
+training_args, = parser.parse_args_into_dataclasses()
 
+# Assign parsed arguments to variables
+model_name = training_args.model_name
+dataset_name = training_args.dataset_name
+num_train_epochs = training_args.num_train_epochs
+learning_rate = training_args.learning_rate
 
+# Define the regular expression pattern
+pattern = r'[^/]+$'
 
+# Find the matches in the model_name and dataset_name strings
+model_match = re.findall(pattern, model_name)
+dataset_match = re.findall(pattern, dataset_name)
 
-# The model that you want to train from the Hugging Face hub
-model_name = "meta-llama/Llama-2-7b-chat-hf"
+# Concatenate the matches with a dash to form the new_model name
+new_model = model_match[0] + '-' + dataset_match[0]
 
-# The instruction dataset to use
-dataset_name = "RikoteMaster/emotion_recog_sample"
+mlflow.set_experiment(new_model)
 
-# Fine-tuned model name
-new_model = "llama-2-7b-sentiment-analyzer"
 
 ################################################################################
 # QLoRA parameters
@@ -69,7 +84,7 @@ use_nested_quant = False
 output_dir = "./results_selected"
 
 # Number of training epochs
-num_train_epochs = 1
+num_train_epochs = 6
 
 # Enable fp16/bf16 training (set bf16 to True with an A100)
 fp16 = False
@@ -90,11 +105,9 @@ gradient_checkpointing = True
 # Maximum gradient normal (gradient clipping)
 max_grad_norm = 0.3
 
-# Initial learning rate (AdamW optimizer)
-learning_rate = 3e-6
 
 # Weight decay to apply to all layers except bias/LayerNorm weights
-weight_decay = 0.001
+weight_decay = 0.1
 
 # Optimizer to use
 optim = "paged_adamw_32bit"
@@ -135,7 +148,7 @@ device_map = {"": 0}
 #log params as different values
 
 run_name = f"Entrenando {model_name} con {dataset_name}"
-mlflow.set_tracking_uri("/workspace/NASFolder/mlruns")
+mlflow.set_tracking_uri("http://158.42.170.253:5000")
 mlflow.set_experiment("LLMs")
 mlflow.start_run(run_name=run_name)
 
@@ -209,6 +222,7 @@ peft_config = LoraConfig(
     r=lora_r,
     bias="none",
     task_type="CAUSAL_LM",
+    target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
 )
 
 # Set training parameters
@@ -247,14 +261,15 @@ trainer = SFTTrainer(
 trainer.train()
 
 # Save trained model
-trainer.model.save_pretrained(new_model)
+trainer.model.push_to_hub(new_model, private=True)
+tokenizer.push_to_hub(new_model, private=True)
 
 
 
 
 from datasets import load_dataset
 
-ds = load_dataset("RikoteMaster/isear_augmented_sample")
+ds = load_dataset("RikoteMaster/isear_rauw")
 
 texts = ds['test']['Text_processed']
 labels = ds['test']['Emotion']
@@ -264,12 +279,33 @@ label_detection = []
 wrong_detection = []
 corrects = 0
 exceptions = 0
+
 for sentence, label in zip(texts, labels):
-    text = f"""<s>[INST] In this task, you will be performing a classification exercise aimed at identifying the underlying emotion conveyed by a given sentence. The emotions to consider are as follows: Anger, Joy, Sadnes, Guilt, Shame, fear or disgust Sentence: {sentence} [/INST] """
-    pipe = pipeline(task="text-generation", model=model, tokenizer=tokenizer, max_length=len(tokenizer(text)) + 200)
+    if not training_args.explainning:
+        text = f"""<s>[INST] In this task, you will be performing a classification exercise aimed at identifying the underlying emotion conveyed by a given sentence. The emotions to consider are as follows: Anger, Joy, Sadnes, Guilt, Shame, fear or disgust Sentence: {sentence} [/INST] """
+    else:
+        text = f"""<s>[INST] In this task, you will be performing a classification exercise aimed at identifying the underlying emotion conveyed by a given sentence. The emotions to consider are as follows: Anger, Joy, Sadness, Guilt, Shame, Fear, or Disgust. Firstly, you have to express the explanation of why you think it's one emotion or another to make a pre-explanation. After that, you will predict the emotion expressed by the sentence. The format will be Explanation: and later Emotion: Sentence: {sentence} [/INST] """
+    
+    pipe = pipeline(task="text-generation", model=model, tokenizer=tokenizer, max_length=len(tokenizer.tokenize(text)) + 5 if not training_args.explainning else len(tokenizer.tokenize(text)) + 70)
     result = pipe(text)
+    print(result)
     try:
-        detected = result[0]['generated_text'].split('[/INST]')[1].split()[0]
+        pattern = r'\b(anger|joy|sadness|guilt|shame|fear|disgust)\b'
+
+        # Assume we are in the context where classification with explanation is not required
+        if not training_args.explainning:
+            # Extract the first word after '[/INST]' marker, handling both upper and lower cases
+            detected = re.search(r'\[/INST\]\s*(\w+)', result[0]['generated_text'], flags=re.IGNORECASE)
+            detected = detected.group(1) if detected else None
+        else:
+            # For classifying and explaining, extract the emotion after 'Emotion: '
+            result = result[0]['generated_text']
+            result = result.split("Emotion: ")[2]
+            match = re.search(pattern, result, flags=re.IGNORECASE)
+            detected = match.group(0).capitalize() if match else None  # Capitalize the detected emotion for consistency
+
+        
+        print(detected)
         if label != detected:
             wrong_detection.append(str(result) + " THE TRUE LABEL IS "+ label)
             label_detection.append(detected)
