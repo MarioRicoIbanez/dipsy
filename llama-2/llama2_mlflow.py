@@ -151,7 +151,7 @@ device_map = {"": 0}
 #log params as different values
 
 run_name = f"Entrenando {model_name} con {dataset_name}"
-mlflow.set_tracking_uri("http://158.42.170.253:5000")
+mlflow.set_tracking_uri("")
 mlflow.set_experiment("LLMs")
 mlflow.start_run(run_name=run_name)
 
