@@ -1,5 +1,7 @@
 import re
+import re
 import torch
+from dataclasses import dataclass, field
 from dataclasses import dataclass, field
 from transformers import (
     AutoModelForCausalLM,
@@ -10,6 +12,7 @@ from transformers import (
     pipeline,
     logging
 )
+from datasets import load_dataset
 from datasets import load_dataset
 from trl import SFTTrainer
 from peft import LoraConfig
@@ -81,7 +84,7 @@ use_nested_quant = False
 ################################################################################
 
 # Output directory where the model predictions and checkpoints will be stored
-output_dir = "./results_selected"
+output_dir = "/checkpoints"
 
 # Number of training epochs
 num_train_epochs = 6
@@ -91,7 +94,7 @@ fp16 = False
 bf16 = True
 
 # Batch size per GPU for training
-per_device_train_batch_size = 16
+per_device_train_batch_size = 32
 
 # Batch size per GPU for evaluation
 per_device_eval_batch_size = 4
@@ -126,7 +129,7 @@ warmup_ratio = 0.03
 group_by_length = True
 
 # Save checkpoint every X updates steps
-save_steps = 25
+save_steps = 200
 
 # Log every X updates steps
 logging_steps = 25
@@ -275,10 +278,14 @@ texts = ds['test']['Text_processed']
 labels = ds['test']['Emotion']
 
 
-label_detection = []
-wrong_detection = []
+
+
+# Initialize counters and lists for tracking
 corrects = 0
+wrong_detection = []
+label_detection = []
 exceptions = 0
+predicted_labels = [] 
 
 for sentence, label in zip(texts, labels):
     if not training_args.explainning:
@@ -295,14 +302,20 @@ for sentence, label in zip(texts, labels):
         # Assume we are in the context where classification with explanation is not required
         if not training_args.explainning:
             # Extract the first word after '[/INST]' marker, handling both upper and lower cases
-            detected = re.search(r'\[/INST\]\s*(\w+)', result[0]['generated_text'], flags=re.IGNORECASE)
-            detected = detected.group(1) if detected else None
+            result_splitted = result[0]['generated_text'].split('[/INST]')[1]
+            detected = re.search(pattern, result_splitted, flags=re.IGNORECASE)
+            detected = detected.group(0) if detected else 'None'
+            detected = detected.lower()
+            predicted_labels.append(detected)
         else:
             # For classifying and explaining, extract the emotion after 'Emotion: '
+            detected = 'None'
             result = result[0]['generated_text']
-            result = result.split("Emotion: ")[2]
-            match = re.search(pattern, result, flags=re.IGNORECASE)
-            detected = match.group(0).capitalize() if match else None  # Capitalize the detected emotion for consistency
+            result_splitted = result.split("Emotion: ")[2]
+            match = re.search(pattern, result_splitted, flags=re.IGNORECASE)
+            detected = match.group(0).lower() if match else 'None'  # Capitalize the detected emotion for consistency
+            detected = detected.lower()
+            predicted_labels.append(detected)
 
         
         print(detected)
@@ -317,9 +330,30 @@ for sentence, label in zip(texts, labels):
         label_detection.append(detected)
         exceptions += 1 
         
+# Ensure that 'None' is included in both the actual and predicted labels
+labels_extended = labels + ['none']  # This assumes 'labels' is a list of actual labels
+labels_example = ["anger", "joy", "sadness", "guilt", "shame", "fear", "disgust", "none"]  # Include 'none' as a valid label
 
+cm = confusion_matrix(labels, predicted_labels, labels=labels_example)
+disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=labels_example)
+disp.plot(cmap=plt.cm.Blues)
 
-print(corrects/len(texts))
+# Define the directory
+dir_name = "workspace/data/confusion_matrix/"
+
+# Check if the directory exists
+if not os.path.exists(dir_name):
+    # If not, create the directory
+    os.makedirs(dir_name)
+
+# Now you can save the figure
+plt.savefig(dir_name + 'confusion_matrix.png')  # Corrected file path to a writable directory
+
+print("Confusion matrix saved as 'confusion_matrix.png'.")
+print(f"Accuracy: {corrects / len(texts)}")
+
+#save the artifact confusion matrix
+mlflow.log_artifact(dir_name + 'confusion_matrix.png')
 
 
 

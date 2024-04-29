@@ -59,8 +59,8 @@ try:
     #Download dataset
     
     #if it is not already downloaded
-    if not os.path.exists('../../data/ISEAR.csv'):
-        os.system('wget https://raw.githubusercontent.com/PoorvaRane/Emotion-Detector/master/ISEAR.csv -P ../../data')
+    if not os.path.exists('/ISEAR.csv'):
+        os.system('wget https://raw.githubusercontent.com/PoorvaRane/Emotion-Detector/master/ISEAR.csv -P ./')
 
     # Load and preprocess the dataset
     df = load_and_preprocess_data('/home/mriciba/Projects/dipsy/RoBERTa/data/ISEAR.csv')

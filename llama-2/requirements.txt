@@ -15,3 +15,4 @@ transformers @ git+https://github.com/huggingface/transformers.git@19f0b7dd02c7e
 pyramid==2.0.2
 datasets==2.15.0
 trl==0.7.4
+transformers
