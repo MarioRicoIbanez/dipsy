@@ -1,7 +1,5 @@
 import re
-import re
 import torch
-from dataclasses import dataclass, field
 from dataclasses import dataclass, field
 from transformers import (
     AutoModelForCausalLM,
@@ -13,10 +11,17 @@ from transformers import (
     logging
 )
 from datasets import load_dataset
-from datasets import load_dataset
 from trl import SFTTrainer
 from peft import LoraConfig
 import mlflow
+
+
+import random 
+import numpy as np 
+
+import os 
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay
+import matplotlib.pyplot as plt
 
 # Define a data class for your custom arguments
 @dataclass
@@ -49,6 +54,15 @@ new_model = model_match[0] + '-' + dataset_match[0]
 
 mlflow.set_experiment(new_model)
 
+def set_seed(seed):
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    np.random.seed(seed)
+    random.seed(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+set_seed(42)
 
 ################################################################################
 # QLoRA parameters
@@ -87,7 +101,6 @@ use_nested_quant = False
 output_dir = "/checkpoints"
 
 # Number of training epochs
-num_train_epochs = 6
 
 # Enable fp16/bf16 training (set bf16 to True with an A100)
 fp16 = False
@@ -110,7 +123,7 @@ max_grad_norm = 0.3
 
 
 # Weight decay to apply to all layers except bias/LayerNorm weights
-weight_decay = 0.1
+weight_decay = 0.001
 
 # Optimizer to use
 optim = "paged_adamw_32bit"
@@ -129,7 +142,7 @@ warmup_ratio = 0.03
 group_by_length = True
 
 # Save checkpoint every X updates steps
-save_steps = 200
+save_steps = 500
 
 # Log every X updates steps
 logging_steps = 25
@@ -151,8 +164,8 @@ device_map = {"": 0}
 #log params as different values
 
 run_name = f"Entrenando {model_name} con {dataset_name}"
-mlflow.set_tracking_uri("")
-mlflow.set_experiment("LLMs")
+mlflow.set_tracking_uri("http://158.42.170.253:5000")
+mlflow.set_experiment("LLMs_seed")
 mlflow.start_run(run_name=run_name)
 
 mlflow.log_param("model_name", model_name)
@@ -287,9 +300,10 @@ label_detection = []
 exceptions = 0
 predicted_labels = [] 
 
+
 for sentence, label in zip(texts, labels):
     if not training_args.explainning:
-        text = f"""<s>[INST] In this task, you will be performing a classification exercise aimed at identifying the underlying emotion conveyed by a given sentence. The emotions to consider are as follows: Anger, Joy, Sadnes, Guilt, Shame, fear or disgust Sentence: {sentence} [/INST] """
+        text = f"""<s>[INST] In this task, you will be performing a classification exercise aimed at identifying the underlying emotion conveyed by a given sentence. The emotions to consider are as follows: Anger, Joy, Sadnes, Guilt, Shame, fear or disgust Sentence: {sentence} [/INST]"""
     else:
         text = f"""<s>[INST] In this task, you will be performing a classification exercise aimed at identifying the underlying emotion conveyed by a given sentence. The emotions to consider are as follows: Anger, Joy, Sadness, Guilt, Shame, Fear, or Disgust. Firstly, you have to express the explanation of why you think it's one emotion or another to make a pre-explanation. After that, you will predict the emotion expressed by the sentence. The format will be Explanation: and later Emotion: Sentence: {sentence} [/INST] """
     
